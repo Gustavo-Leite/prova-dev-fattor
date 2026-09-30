@@ -1,9 +1,14 @@
+import path from "node:path";
+
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import boundaries from "eslint-plugin-boundaries";
 import prettier from "eslint-config-prettier/flat";
 import tseslint from "typescript-eslint";
+
+const projectRoot = import.meta.dirname;
+const testFiles = "src/**/*.test.{ts,tsx}";
 
 const layer = (type) => ({ element: { type } });
 const layers = (...types) => types.map(layer);
@@ -12,12 +17,20 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    settings: {
+      next: { rootDir: projectRoot },
+      "import/resolver": {
+        typescript: { project: path.join(projectRoot, "tsconfig.json") },
+      },
+    },
+  },
+  {
     files: ["**/*.{ts,tsx,mts,cts}"],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: projectRoot,
       },
     },
     rules: {
@@ -33,6 +46,7 @@ const eslintConfig = defineConfig([
     files: ["src/**/*.{ts,tsx}"],
     plugins: { boundaries },
     settings: {
+      "boundaries/root-path": projectRoot,
       "boundaries/elements": [
         { type: "domain", pattern: "src/domain", partialMatch: false },
         { type: "application", pattern: "src/application", partialMatch: false },
@@ -42,7 +56,7 @@ const eslintConfig = defineConfig([
         { type: "components", pattern: "src/components", partialMatch: false },
         { type: "lib", pattern: "src/lib", partialMatch: false },
       ],
-      "boundaries/files": [{ category: "test", pattern: "src/**/*.test.{ts,tsx}" }],
+      "boundaries/files": [{ category: "test", pattern: testFiles }],
     },
     rules: {
       "boundaries/dependencies": [
@@ -103,7 +117,7 @@ const eslintConfig = defineConfig([
       "import/no-extraneous-dependencies": [
         "error",
         {
-          devDependencies: ["src/**/*.test.{ts,tsx}"],
+          devDependencies: [`${projectRoot.split(path.sep).join("/")}/${testFiles}`],
           optionalDependencies: false,
           peerDependencies: false,
           includeTypes: true,
