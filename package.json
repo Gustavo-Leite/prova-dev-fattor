@@ -12,7 +12,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=24 <25"
@@ -29,6 +30,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
     "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.13.6",
@@ -38,6 +41,8 @@
     "eslint-config-next": "16.3.6",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-boundaries": "7.2.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.5.1",
     "prettier": "3.9.8",
     "prettier-plugin-tailwindcss": "0.8.1",
     "shadcn": "4.21.0",
