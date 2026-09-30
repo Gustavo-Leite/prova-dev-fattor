@@ -98,6 +98,43 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "import/no-extraneous-dependencies": [
+        "error",
+        {
+          devDependencies: ["src/**/*.test.{ts,tsx}"],
+          optionalDependencies: false,
+          peerDependencies: false,
+          includeTypes: true,
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/utils.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "cn",
+              message: "Import cn from @/lib/utils so the class merging engine stays swappable.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["cn/*"],
+              message: "Import cn from @/lib/utils so the class merging engine stays swappable.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     rules: {
       eqeqeq: "error",
       "no-console": ["error", { allow: ["warn", "error"] }],
