@@ -44,6 +44,7 @@
     "eslint-plugin-boundaries": "7.2.0",
     "husky": "9.1.7",
     "lint-staged": "17.5.1",
+    "msw": "2.15.0",
     "prettier": "3.9.8",
     "prettier-plugin-tailwindcss": "0.8.1",
     "shadcn": "4.21.0",
