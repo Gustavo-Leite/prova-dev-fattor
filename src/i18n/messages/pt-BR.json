@@ -30,13 +30,29 @@
       "completed": "Consulta concluída: {total, plural, one {# título consultado} other {# títulos consultados}}{failed, plural, =0 {.} one {, # com falha.} other {, # com falha.}}",
       "credentialsRejected": "A API da Fattor recusou as credenciais do servidor, então a consulta foi interrompida. Tente mais tarde.",
       "interrupted": "A consulta foi interrompida antes do fim. Os títulos sem situação podem ser consultados de novo.",
-      "summaryLabel": "Resumo por situação",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Situação de cada título do arquivo, na ordem das linhas",
       "lineColumn": "Linha",
       "keyColumn": "Chave de acesso da NF-e",
       "statusColumn": "Situação",
       "lineLabel": "Linha {lineNumber}"
+    },
+    "filters": {
+      "statusLabel": "Filtrar por situação",
+      "searchLabel": "Buscar pela chave de acesso",
+      "searchHint": "Digite qualquer parte da chave; espaços, pontos e traços são ignorados.",
+      "clear": "Limpar filtros",
+      "noMatches": "Nenhum título corresponde aos filtros.",
+      "digitsOnly": "A chave de acesso tem só números.",
+      "matches": "{count, plural, =0 {Nenhum título encontrado.} one {# título encontrado.} other {# títulos encontrados.}}"
+    },
+    "pagination": {
+      "label": "Páginas dos resultados",
+      "range": "{from}–{to} de {count}",
+      "pageSize": "Títulos por página",
+      "previous": "Anterior",
+      "next": "Próxima",
+      "page": "Página {page} de {pageCount}"
     },
     "statuses": {
       "authorized": "Autorizada",

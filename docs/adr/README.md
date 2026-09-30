@@ -19,6 +19,7 @@ projeto, que apontarão para os ADRs.
 | [0009](0009-e2e-playwright-container.md)        | E2E na imagem oficial do Playwright, sem apt nem download do navegador      | Aceito |
 | [0010](0010-cnab-444-parser.md)                 | Parser CNAB 444 puro, só com colunas estáveis e erros tipados               | Aceito |
 | [0011](0011-fattor-api-integration.md)          | BFF com upload único e resultados em NDJSON; sessão, limites e prazo        | Aceito |
+| [0012](0012-results-list.md) | Filtros, busca e paginação por função pura, sem biblioteca de tabela | Aceito |
 
 Cada ADR segue o mesmo formato: Contexto, Opções consideradas, Decisão (a primeira linha resume a
 decisão), Consequências e Evidências (arquivos que aplicam a regra e o commit em que ela entrou).

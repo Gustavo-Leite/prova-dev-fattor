@@ -100,7 +100,13 @@ export function deriveRows(
   });
 }
 
-export type RowSummary = Readonly<Record<InvoiceStatus | "failed" | "pending", number>>;
+export type RowTone = InvoiceStatus | "failed" | "pending";
+
+export function toneOf(row: ReceivableRow): RowTone {
+  return row.state.kind === "status" ? row.state.status : row.state.kind;
+}
+
+export type RowSummary = Readonly<Record<RowTone, number>>;
 
 export function summarizeRows(rows: readonly ReceivableRow[]): RowSummary {
   const summary = {
@@ -112,8 +118,8 @@ export function summarizeRows(rows: readonly ReceivableRow[]): RowSummary {
     failed: 0,
     pending: 0,
   };
-  for (const { state } of rows) {
-    summary[state.kind === "status" ? state.status : state.kind]++;
+  for (const row of rows) {
+    summary[toneOf(row)]++;
   }
   return summary;
 }

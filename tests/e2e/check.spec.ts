@@ -1,74 +1,31 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import AxeBuilder from "@axe-core/playwright";
-import type { Page, Route } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-const samplePath = path.join(__dirname, "../../_prova/meu_cnab.rem");
+import {
+  fulfillStream,
+  fullStream,
+  ndjson,
+  resultsSection,
+  samplePath,
+  sampleReceivables,
+  sampleResult,
+  visibleRowFor,
+} from "./remittance-stream";
+
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-const sampleReceivables = readFileSync(samplePath, "latin1")
-  .split("\n")
-  .map((line, index) => ({ lineNumber: index + 1, key: line.slice(400, 444), type: line[0] }))
-  .filter((line) => line.type === "1");
-
-const statusByLine: Readonly<Record<number, string>> = {
-  2: "authorized",
-  3: "cancelled",
-  4: "authorized",
-  5: "rejected",
-  6: "authorized",
-  7: "denied",
-  8: "authorized",
-  9: "cancelled",
-  10: "rejected",
-  11: "authorized",
-};
-
-type StreamLine = Record<string, unknown>;
-
-function resultLine(lineNumber: number, override: StreamLine = {}): StreamLine {
-  const receivable = sampleReceivables.find((item) => item.lineNumber === lineNumber);
-  return {
-    type: "result",
-    lineNumber,
-    invoiceAccessKey: receivable?.key ?? "",
-    hasValidCheckDigit: [2, 10, 11].includes(lineNumber),
-    outcome: "status",
-    status: statusByLine[lineNumber],
-    ...override,
-  };
-}
-
-function ndjson(lines: readonly StreamLine[]): string {
-  return lines.map((line) => `${JSON.stringify(line)}\n`).join("");
-}
-
-function fullStream(overrides: Readonly<Record<number, StreamLine>> = {}): string {
-  return ndjson([
-    { type: "started", total: sampleReceivables.length },
-    ...sampleReceivables.map(({ lineNumber }) => resultLine(lineNumber, overrides[lineNumber])),
-    { type: "completed" },
-  ]);
-}
-
-function fulfillStream(body: string) {
-  return (route: Route) =>
-    route.fulfill({ status: 200, contentType: "application/x-ndjson; charset=utf-8", body });
-}
 
 async function chooseSample(page: Page) {
   await page.locator('input[type="file"]').setInputFiles(samplePath);
   await expect(page.getByRole("button", { name: "Consultar situações" })).toBeVisible();
 }
 
-function resultsSection(page: Page) {
-  return page.getByRole("region", { name: "Situação das notas" });
+function milestone(page: Page) {
+  return resultsSection(page).getByRole("status").filter({ hasText: "Consulta" });
 }
 
-function visibleRowFor(page: Page, key: string) {
-  return resultsSection(page).locator("tr, li").filter({ hasText: key }).filter({ visible: true });
+function statusFilters(page: Page) {
+  return resultsSection(page).getByRole("group", { name: "Filtrar por situação" });
 }
 
 test.describe("status check (pt-BR)", () => {
@@ -85,10 +42,8 @@ test.describe("status check (pt-BR)", () => {
     await page.getByRole("button", { name: "Consultar situações" }).click();
 
     const results = resultsSection(page);
-    await expect(results.getByRole("status")).toHaveText(
-      "Consulta concluída: 10 títulos consultados.",
-    );
-    const summary = results.getByRole("list", { name: "Resumo por situação" });
+    await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
+    const summary = statusFilters(page);
     await expect(summary).toContainText("Autorizada: 5");
     await expect(summary).toContainText("Cancelada: 2");
     await expect(summary).toContainText("Rejeitada: 2");
@@ -110,7 +65,7 @@ test.describe("status check (pt-BR)", () => {
     await page.getByRole("button", { name: "Consultar situações" }).focus();
     await page.keyboard.press("Enter");
 
-    const checking = page.getByRole("button", { name: "Consultando…" });
+    const checking = page.getByRole("button", { name: "Consultando…", exact: true });
     await expect(checking).toBeFocused();
     await expect(checking).toHaveAttribute("aria-disabled", "true");
     await page.keyboard.press("Enter");
@@ -121,7 +76,9 @@ test.describe("status check (pt-BR)", () => {
   test("shows an item that failed without stopping the others", async ({ page }) => {
     await page.route(
       "**/api/remittances",
-      fulfillStream(fullStream({ 4: { outcome: "failed", reason: "UPSTREAM_TIMEOUT" } })),
+      fulfillStream(
+        fullStream(sampleReceivables, { 4: { outcome: "failed", reason: "UPSTREAM_TIMEOUT" } }),
+      ),
     );
     await chooseSample(page);
     await page.getByRole("button", { name: "Consultar situações" }).click();
@@ -129,10 +86,8 @@ test.describe("status check (pt-BR)", () => {
     await expect(visibleRowFor(page, sampleReceivables[2]?.key ?? "")).toContainText(
       "Falhou: sem resposta a tempo",
     );
-    await expect(
-      resultsSection(page).getByRole("list", { name: "Resumo por situação" }),
-    ).toContainText("Falhou: 1");
-    await expect(resultsSection(page).getByRole("status")).toHaveText(
+    await expect(statusFilters(page)).toContainText("Falhou: 1");
+    await expect(milestone(page)).toHaveText(
       "Consulta concluída: 10 títulos consultados, 1 com falha.",
     );
   });
@@ -143,7 +98,7 @@ test.describe("status check (pt-BR)", () => {
       fulfillStream(
         ndjson([
           { type: "started", total: 10 },
-          resultLine(2),
+          sampleResult(2),
           { type: "failed", reason: "UPSTREAM_REJECTED_CREDENTIALS" },
         ]),
       ),
@@ -163,7 +118,7 @@ test.describe("status check (pt-BR)", () => {
       attempts++;
       const body =
         attempts === 1
-          ? ndjson([{ type: "started", total: 10 }, resultLine(2), resultLine(3)])
+          ? ndjson([{ type: "started", total: 10 }, sampleResult(2), sampleResult(3)])
           : fullStream();
       await fulfillStream(body)(route);
     });
@@ -174,9 +129,7 @@ test.describe("status check (pt-BR)", () => {
       "A consulta foi interrompida antes do fim.",
     );
     await expect(resultsSection(page).getByText("2 de 10 consultados")).toBeVisible();
-    await expect(
-      resultsSection(page).getByRole("list", { name: "Resumo por situação" }),
-    ).toContainText("Não consultado: 8");
+    await expect(statusFilters(page)).toContainText("Não consultado: 8");
     await expect(visibleRowFor(page, sampleReceivables[9]?.key ?? "")).toContainText(
       "Não consultado",
     );
@@ -226,7 +179,7 @@ test.describe("status check (pt-BR)", () => {
     page.on("requestfailed", (request) => failedRequests.push(request.url()));
     await chooseSample(page);
     await page.getByRole("button", { name: "Consultar situações" }).click();
-    await expect(page.getByRole("button", { name: "Consultando…" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeVisible();
 
     await chooseSample(page);
 
@@ -249,7 +202,11 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.goto("/");
       await page.route(
         "**/api/remittances",
-        fulfillStream(fullStream({ 4: { outcome: "failed", reason: "UPSTREAM_UNAVAILABLE" } })),
+        fulfillStream(
+          fullStream(sampleReceivables, {
+            4: { outcome: "failed", reason: "UPSTREAM_UNAVAILABLE" },
+          }),
+        ),
       );
       await chooseSample(page);
       await page.getByRole("button", { name: "Consultar situações" }).click();
