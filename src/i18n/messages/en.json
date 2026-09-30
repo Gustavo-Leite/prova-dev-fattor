@@ -4,7 +4,38 @@
     "description": "Upload a CNAB 444 remittance file and check the status of each invoice."
   },
   "home": {
-    "title": "CNAB 444 Status Checker"
+    "title": "CNAB 444 Status Checker",
+    "description": "Upload the remittance file to validate its layout and check the status of each invoice."
+  },
+  "remittance": {
+    "upload": {
+      "instructions": "Drag the remittance file here or click to choose it",
+      "chooseAnother": "Choose another file",
+      "hint": "CNAB 444 (.rem or .txt), up to {maxKilobytes} KB and {maxReceivables} receivables",
+      "reading": "Reading {fileName}…",
+      "ready": "{count, plural, one {# receivable} other {# receivables}} ready to check in {fileName}.",
+      "invalidCheckDigits": "{count, plural, one {# key has} other {# keys have}} an invalid check digit; they will be checked anyway.",
+      "rejectedFile": "File: {fileName}",
+      "truncated": "There are more problems besides these."
+    },
+    "rejections": {
+      "INVALID_FILE": "The file does not follow the CNAB 444 layout.",
+      "TOO_MANY_RECEIVABLES": "The file has {actual} receivables; the limit is {max} per upload.",
+      "FILE_TOO_LARGE": "The file is larger than {maxKilobytes} KB.",
+      "MULTIPLE_FILES": "Upload one file at a time.",
+      "UNREADABLE_FILE": "The file could not be read. It may be a folder or it may have been moved; choose it again."
+    },
+    "issues": {
+      "EMPTY_FILE": "The file is empty.",
+      "INVALID_CHARACTERS": "Line {lineNumber}: contains control characters.",
+      "INVALID_LINE_LENGTH": "Line {lineNumber}: {actual, plural, =0 {is empty} one {has # character} other {has # characters}}; {expected} are expected.",
+      "UNEXPECTED_RECORD_TYPE": "Line {lineNumber}: record of type “{actual}”; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
+      "UNEXPECTED_BLANK_LINE": "Line {lineNumber}: is blank; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
+      "MISSING_DETAIL_RECORDS": "The file has no detail records (type 1).",
+      "INVALID_RECORD_COUNT": "Line {lineNumber}: the trailer does not state a valid record count.",
+      "RECORD_COUNT_MISMATCH": "Line {lineNumber}: the trailer states {declared, plural, one {# record} other {# records}}, but the file has {actual}.",
+      "INVALID_ACCESS_KEY_FORMAT": "Line {lineNumber}: the NF-e access key (columns 401–444) is not in a valid format."
+    }
   },
   "notFound": {
     "title": "Page not found",

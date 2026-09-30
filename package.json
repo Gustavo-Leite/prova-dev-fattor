@@ -21,6 +21,7 @@
   "packageManager": "bun@1.3.14",
   "trustedDependencies": [],
   "dependencies": {
+    "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
     "next": "16.3.6",
     "next-intl": "4.14.6",

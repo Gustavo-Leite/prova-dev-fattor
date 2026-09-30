@@ -4,7 +4,38 @@
     "description": "Envie um arquivo de remessa CNAB 444 e consulte a situação de cada nota fiscal."
   },
   "home": {
-    "title": "Consulta de Status CNAB 444"
+    "title": "Consulta de Status CNAB 444",
+    "description": "Envie o arquivo de remessa para validar o layout e consultar a situação de cada nota fiscal."
+  },
+  "remittance": {
+    "upload": {
+      "instructions": "Arraste o arquivo de remessa aqui ou clique para escolher",
+      "chooseAnother": "Escolher outro arquivo",
+      "hint": "CNAB 444 (.rem ou .txt), até {maxKilobytes} KB e {maxReceivables} títulos",
+      "reading": "Lendo {fileName}…",
+      "ready": "{count, plural, one {# título pronto} other {# títulos prontos}} para consulta em {fileName}.",
+      "invalidCheckDigits": "{count, plural, one {# chave tem} other {# chaves têm}} dígito verificador inválido; a consulta é feita mesmo assim.",
+      "rejectedFile": "Arquivo: {fileName}",
+      "truncated": "Há mais problemas além destes."
+    },
+    "rejections": {
+      "INVALID_FILE": "O arquivo não segue o layout CNAB 444.",
+      "TOO_MANY_RECEIVABLES": "O arquivo tem {actual} títulos; o limite é {max} por envio.",
+      "FILE_TOO_LARGE": "O arquivo passa de {maxKilobytes} KB.",
+      "MULTIPLE_FILES": "Envie um arquivo por vez.",
+      "UNREADABLE_FILE": "Não foi possível ler o arquivo. Ele pode ser uma pasta ou ter sido movido; escolha-o de novo."
+    },
+    "issues": {
+      "EMPTY_FILE": "O arquivo está vazio.",
+      "INVALID_CHARACTERS": "Linha {lineNumber}: contém caracteres de controle.",
+      "INVALID_LINE_LENGTH": "Linha {lineNumber}: {actual, plural, =0 {está vazia} one {tem # caractere} other {tem # caracteres}}; o esperado são {expected}.",
+      "UNEXPECTED_RECORD_TYPE": "Linha {lineNumber}: registro do tipo “{actual}”; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
+      "UNEXPECTED_BLANK_LINE": "Linha {lineNumber}: está em branco; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
+      "MISSING_DETAIL_RECORDS": "O arquivo não tem registros de detalhe (tipo 1).",
+      "INVALID_RECORD_COUNT": "Linha {lineNumber}: o trailer não informa um total de registros válido.",
+      "RECORD_COUNT_MISMATCH": "Linha {lineNumber}: o trailer informa {declared, plural, one {# registro} other {# registros}}, mas o arquivo tem {actual}.",
+      "INVALID_ACCESS_KEY_FORMAT": "Linha {lineNumber}: a chave de acesso da NF-e (colunas 401–444) não tem um formato válido."
+    }
   },
   "notFound": {
     "title": "Página não encontrada",

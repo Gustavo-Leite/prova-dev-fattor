@@ -121,6 +121,12 @@ const eslintConfig = defineConfig([
                 ],
               },
             },
+            {
+              from: { file: { categories: "test" } },
+              allow: {
+                to: { element: { type: "i18n" }, file: { path: "src/i18n/messages/*.json" } },
+              },
+            },
           ],
         },
       ],
