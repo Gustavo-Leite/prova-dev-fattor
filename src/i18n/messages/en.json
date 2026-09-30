@@ -32,6 +32,7 @@
       "interrupted": "The check stopped before the end. Receivables without a status can be checked again.",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Status of each receivable in the file, in line order",
+      "tableRegion": "Receivables list",
       "lineColumn": "Line",
       "keyColumn": "NF-e access key",
       "statusColumn": "Status",

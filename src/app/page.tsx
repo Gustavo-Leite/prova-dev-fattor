@@ -21,10 +21,10 @@ export default async function Home() {
   const t = await getTranslations("home");
 
   return (
-    <main className="flex flex-1 flex-col items-center gap-6 px-4 py-8 sm:px-8 sm:py-12">
-      <header className="flex max-w-2xl flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("description")}</p>
+    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 desktop-tall:overflow-y-auto">
+      <header className="flex shrink-0 flex-col gap-1">
+        <h1 className="text-xl font-semibold sm:text-2xl">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
       </header>
       <RemittanceChecker limits={uploadLimits} />
     </main>

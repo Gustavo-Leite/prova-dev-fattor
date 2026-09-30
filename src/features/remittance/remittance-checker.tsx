@@ -85,12 +85,12 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
   }[state.phase];
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-6">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-4">
       <RemittanceUpload limits={limits} onReady={handleReady} onReset={handleReset} />
 
       {selection && (
-        <section aria-labelledby={headingId} className="flex w-full flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <section aria-labelledby={headingId} className="flex min-h-0 w-full flex-1 flex-col gap-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
             <h2 id={headingId} className="text-lg font-semibold">
               {t("check.heading")}
             </h2>

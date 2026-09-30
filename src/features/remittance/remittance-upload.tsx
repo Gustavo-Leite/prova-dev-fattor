@@ -140,6 +140,7 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
   };
 
   const hasFile = state.phase !== "idle";
+  const isCompact = state.phase === "ready";
   const isRejected = state.phase === "rejected";
   const rejection = isRejected ? describeRemittanceRejection(state.rejection) : null;
   const invalidCheckDigits =
@@ -148,7 +149,15 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
       : 0;
 
   return (
-    <section aria-labelledby={headingId} className="flex w-full flex-col gap-4">
+    <section
+      aria-labelledby={headingId}
+      className={cn(
+        "flex w-full shrink-0 flex-col",
+        isCompact
+          ? "gap-2 sm:flex-row-reverse sm:items-center sm:justify-between sm:gap-4"
+          : "gap-4",
+      )}
+    >
       <h2 id={headingId} className="sr-only">
         {t("upload.heading")}
       </h2>
@@ -160,14 +169,14 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-input bg-card text-center hover:bg-accent motion-safe:transition-colors",
           "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring",
-          hasFile ? "px-4 py-4" : "px-6 py-12",
+          isCompact ? "px-3 py-1.5 sm:shrink-0" : hasFile ? "px-4 py-4" : "px-6 py-12",
           isDragging && "border-primary bg-accent",
         )}
       >
         <span className="font-medium">
           {hasFile ? t("upload.chooseAnother") : t("upload.instructions")}
         </span>
-        <span id={hintId} className="text-sm text-muted-foreground">
+        <span id={hintId} className={cn("text-sm text-muted-foreground", isCompact && "sr-only")}>
           {t("upload.hint", {
             maxKilobytes: toKilobytes(limits.maxUploadBytes),
             maxReceivables: limits.maxReceivables,

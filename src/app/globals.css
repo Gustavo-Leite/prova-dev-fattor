@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (@media (prefers-color-scheme: dark));
+@custom-variant desktop-tall (@media (min-width: 64rem) and (min-height: 40rem));
 
 @theme inline {
   --font-sans: var(--font-sora), ui-sans-serif, system-ui, sans-serif;

@@ -15,12 +15,16 @@ import {
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const remittance = buildRemittance(30);
 
-async function checkRemittance(page: Page) {
+async function chooseRemittance(page: Page) {
   await page.locator('input[type="file"]').setInputFiles({
     name: "remessa-30.rem",
     mimeType: "application/octet-stream",
     buffer: remittance.buffer,
   });
+}
+
+async function checkRemittance(page: Page) {
+  await chooseRemittance(page);
   await page.getByRole("button", { name: "Consultar situações" }).click();
 }
 
@@ -183,6 +187,100 @@ test.describe("results list (pt-BR)", () => {
     await expect(emptied).toHaveCount(0);
     await expect(searchBox(page)).toBeFocused();
     await expect(visibleRows(page)).toHaveCount(10);
+  });
+});
+
+test.describe("results list layout on desktop (pt-BR)", () => {
+  test.use({ locale: "pt-BR" });
+  test.skip(({ isMobile }) => isMobile, "the page keeps its natural scroll on phones");
+
+  function pageOverflow(page: Page) {
+    return page.evaluate(
+      () => document.documentElement.scrollHeight - document.documentElement.clientHeight,
+    );
+  }
+
+  test("keeps the page still and scrolls only the table", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/");
+    await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
+    await checkRemittance(page);
+    await expect(pagination(page)).toContainText("1–25 de 30");
+
+    expect(await pageOverflow(page)).toBe(0);
+    const region = resultsSection(page).getByRole("region", { name: "Lista de títulos" });
+    const regionBox = await region.boundingBox();
+    await region.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    const headerBox = await region.getByRole("columnheader").first().boundingBox();
+    expect(Math.abs((headerBox?.y ?? 0) - (regionBox?.y ?? 0))).toBeLessThan(2);
+    await expect(pagination(page)).toBeInViewport();
+  });
+
+  test("shrinks the file picker once the file is ready", async ({ page }) => {
+    await page.goto("/");
+    const picker = page.locator("label").filter({ has: page.locator('input[type="file"]') });
+    expect((await picker.boundingBox())?.height ?? 0).toBeGreaterThan(100);
+
+    await chooseRemittance(page);
+
+    await expect
+      .poll(async () => (await picker.boundingBox())?.height ?? Number.POSITIVE_INFINITY)
+      .toBeLessThan(48);
+    await expect(picker).toContainText("Escolher outro arquivo");
+  });
+
+  test("keeps a long file error readable", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/");
+    const shortLines = Array.from({ length: 60 }, () => "1").join("\n");
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "quebrado.rem",
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(`${shortLines}\n`, "latin1"),
+    });
+
+    const alert = page.getByRole("alert").filter({ hasText: "quebrado.rem" });
+    await alert.hover();
+    await page.mouse.wheel(0, 5000);
+
+    const lastDetail = alert.getByRole("listitem").last();
+    const footer = page.getByRole("contentinfo");
+    await expect(lastDetail).toBeInViewport();
+    await expect(footer).toBeInViewport();
+    const detailBox = await lastDetail.boundingBox();
+    const footerBox = await footer.boundingBox();
+    expect((detailBox?.y ?? 0) + (detailBox?.height ?? 0)).toBeLessThanOrEqual(footerBox?.y ?? 0);
+  });
+
+  test("keeps room for the table when an alert is shown", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 640 });
+    await page.goto("/");
+    await page.route(
+      "**/api/remittances",
+      fulfillStream(interruptedStream(remittance.receivables, 20)),
+    );
+    await checkRemittance(page);
+    await expect(resultsSection(page).getByRole("alert")).toBeVisible();
+
+    const region = resultsSection(page).getByRole("region", { name: "Lista de títulos" });
+    const regionBox = await region.boundingBox();
+    const paginationBox = await pagination(page).boundingBox();
+    expect(regionBox?.height ?? 0).toBeGreaterThanOrEqual(190);
+    expect((regionBox?.y ?? 0) + (regionBox?.height ?? 0)).toBeLessThanOrEqual(
+      paginationBox?.y ?? 0,
+    );
+  });
+
+  test("lets a short window scroll the whole page", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 560 });
+    await page.goto("/");
+    await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
+    await checkRemittance(page);
+    await expect(pagination(page)).toContainText("1–25 de 30");
+
+    expect(await pageOverflow(page)).toBeGreaterThan(0);
   });
 });
 

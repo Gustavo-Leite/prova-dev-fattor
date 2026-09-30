@@ -32,6 +32,7 @@
       "interrupted": "A consulta foi interrompida antes do fim. Os títulos sem situação podem ser consultados de novo.",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Situação de cada título do arquivo, na ordem das linhas",
+      "tableRegion": "Lista de títulos",
       "lineColumn": "Linha",
       "keyColumn": "Chave de acesso da NF-e",
       "statusColumn": "Situação",

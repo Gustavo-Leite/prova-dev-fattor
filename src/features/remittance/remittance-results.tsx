@@ -115,7 +115,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
       : null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <p role="status" className="sr-only">
         {announcement}
       </p>
@@ -170,10 +170,17 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
             </p>
           ) : (
             <>
-              <div className="hidden md:block">
-                <Table>
+              <div className="hidden min-h-48 flex-1 md:flex md:flex-col">
+                <Table
+                  containerClassName="flex-1 overflow-auto rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  containerProps={{
+                    tabIndex: 0,
+                    role: "region",
+                    "aria-label": t("check.tableRegion"),
+                  }}
+                >
                   <TableCaption className="sr-only">{t("check.tableCaption")}</TableCaption>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_var(--border)]">
                     <TableRow>
                       <TableHead className="w-16">{t("check.lineColumn")}</TableHead>
                       <TableHead>{t("check.keyColumn")}</TableHead>

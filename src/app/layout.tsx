@@ -27,9 +27,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
   return (
     <html lang={locale} className={`${sora.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+      <body className="flex min-h-full flex-col desktop-tall:h-dvh" suppressHydrationWarning>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
-        <footer className="border-t px-4 py-4 text-center text-xs text-muted-foreground">
+        <footer className="shrink-0 border-t px-4 py-3 text-center text-xs text-muted-foreground">
           {t("disclaimer")}
         </footer>
       </body>
