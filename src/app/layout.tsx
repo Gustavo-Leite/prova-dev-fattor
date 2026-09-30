@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Sora } from "next/font/google";
+import { getLocale, getTranslations } from "next-intl/server";
 import "./globals.css";
 
 const sora = Sora({
@@ -12,18 +13,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "CNAB 444 Status Checker",
-  description: "Upload a CNAB 444 remittance file and check the status of each invoice.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    description: t("description"),
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
+  const t = await getTranslations("footer");
+
   return (
-    <html lang="en" className={`${sora.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang={locale} className={`${sora.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         {children}
         <footer className="border-t px-4 py-4 text-center text-xs text-muted-foreground">
-          {"Technical assessment project — not an official Fattor Crédito product."}
+          {t("disclaimer")}
         </footer>
       </body>
     </html>

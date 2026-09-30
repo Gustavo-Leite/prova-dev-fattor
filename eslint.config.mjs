@@ -10,6 +10,19 @@ import tseslint from "typescript-eslint";
 const projectRoot = import.meta.dirname;
 const testFiles = "src/**/*.test.{ts,tsx}";
 
+const visibleAttribute =
+  "JSXAttribute[name.name=/^(aria-label|aria-description|aria-placeholder|aria-roledescription|aria-valuetext|alt|placeholder|title)$/]";
+const visibleText =
+  ":matches(Literal[value=/\\S/], TemplateLiteral:has(TemplateElement[value.raw=/\\S/]))";
+const visibleAttributeLiteralSelectors = [
+  `${visibleAttribute} > Literal[value=/\\S/]`,
+  `${visibleAttribute} > JSXExpressionContainer > ${visibleText}`,
+  `${visibleAttribute} > JSXExpressionContainer > :matches(ConditionalExpression, LogicalExpression, BinaryExpression) > ${visibleText}`,
+].map((selector) => ({
+  selector,
+  message: "User-visible attribute text must come from the i18n catalogs.",
+}));
+
 const layer = (type) => ({ element: { type } });
 const layers = (...types) => types.map(layer);
 
@@ -55,6 +68,7 @@ const eslintConfig = defineConfig([
         { type: "features", pattern: "src/features", partialMatch: false },
         { type: "components", pattern: "src/components", partialMatch: false },
         { type: "lib", pattern: "src/lib", partialMatch: false },
+        { type: "i18n", pattern: "src/i18n", partialMatch: false },
       ],
       "boundaries/files": [{ category: "test", pattern: testFiles }],
     },
@@ -97,6 +111,7 @@ const eslintConfig = defineConfig([
               allow: { to: layer("domain"), dependency: { kind: "type" } },
             },
             { from: layer("lib"), allow: { to: layer("lib") } },
+            { from: layer("i18n"), allow: { to: layers("i18n", "lib") } },
             {
               from: { file: { categories: "test" } },
               allow: {
@@ -146,6 +161,14 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
+    },
+  },
+  {
+    files: ["src/**/*.tsx"],
+    ignores: [testFiles],
+    rules: {
+      "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true }],
+      "no-restricted-syntax": ["error", ...visibleAttributeLiteralSelectors],
     },
   },
   {

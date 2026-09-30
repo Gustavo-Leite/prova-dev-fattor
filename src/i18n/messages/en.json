@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "title": "CNAB 444 Status Checker",
+    "description": "Upload a CNAB 444 remittance file and check the status of each invoice."
+  },
+  "home": {
+    "title": "CNAB 444 Status Checker"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist.",
+    "backHome": "Back to home"
+  },
+  "footer": {
+    "disclaimer": "Technical assessment project — not an official Fattor Crédito product."
+  }
+}
