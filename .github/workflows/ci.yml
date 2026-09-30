@@ -51,9 +51,12 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
       - run: cp .env.example .env
-      - run: bun run test:e2e
+      - run: >-
+          docker run --rm -e CI -v "$PWD:/work" -w /work
+          -v "$(readlink -f "$(command -v bun)"):/usr/local/bin/bun:ro"
+          mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+          bun run test:e2e
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

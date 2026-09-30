@@ -53,7 +53,7 @@ robusto aceita os dois.
 
 Resumo dos campos principais do CNAB 400 Bradesco, que a variante A mantém nas colunas 1–400.
 Campos de uso bancário (multa, desconto, instruções, débito automático) foram omitidos; a lista
-completa está no manual citado em [Fontes](#7-fontes).
+completa está no manual citado em [Fontes](#8-fontes).
 
 **Header (tipo 0)**
 
@@ -238,8 +238,8 @@ resto for 0 ou 1, o dígito é 0; senão, é 11 − resto.
 
 - No arquivo da prova, **só 3 das 10 chaves têm dígito válido** (detalhes 1, 9 e 10), e a API
   responde normalmente para todas (verificado em 29/09/2026). O CNPJ das chaves também é fictício
-  (seus dígitos verificadores não conferem). Por isso o dígito é tratado como **aviso**, não como motivo
-  para rejeitar o título.
+  (seus dígitos verificadores não conferem). Por isso o dígito é apenas informado em cada título,
+  sem rejeitá-lo.
 - **CNPJ alfanumérico:** a partir de julho de 2026 (produção em 06/07/2026, segundo a NT
   2025.001 v1.00), o CNPJ pode ter letras nas 12 primeiras posições
   (colunas 07–18 da chave). Nesse caso, o dígito verificador converte cada caractere pelo código
@@ -249,18 +249,37 @@ resto for 0 ou 1, o dígito é 0; senão, é 11 − resto.
 
 ### O que a extração usa
 
-Resumo das restrições de que a leitura do arquivo depende (as regras exatas e os erros ficam no
-parser e nos seus testes):
+Resumo das restrições de que a leitura do arquivo depende. As regras exatas e os códigos de erro
+estão em [`src/domain/cnab/`](../src/domain/cnab/) (`decode-remittance.ts` e `parse-cnab-444.ts`)
+e nos testes; as decisões, no [ADR 0010](adr/0010-cnab-444-parser.md).
 
-- toda linha tem 444 caracteres (LF ou CR+LF);
+- o arquivo é lido byte a byte (windows-1252, sem BOM), então 1 byte = 1 coluna;
+- toda linha tem 444 colunas (LF ou CR+LF; linhas em branco depois do trailer são ignoradas);
 - a primeira linha é header (`0`), a última é trailer (`9`) e as intermediárias são detalhes
   (`1`);
-- o trailer informa o total de registros (393–398 neste arquivo; 395–400 na referência),
-  conferido com o número de linhas;
+- o trailer informa o total de registros (393–398 neste arquivo; 395–400 na referência; lido em
+  393–400), conferido com o número de linhas;
 - o identificador de cada detalhe está em 401–444, com 44 caracteres no formato da chave;
-- o dígito verificador da chave gera aviso, não erro.
+- o dígito verificador da chave é informado em cada recebível (`hasValidCheckDigit`), sem
+  rejeitar o arquivo;
+- só caracteres de controle invalidam uma linha; acentos fora da chave são aceitos.
 
-## 7. Fontes
+## 7. Glossário
+
+Termos do negócio e os nomes usados no código (o código é todo em inglês).
+
+| Termo                         | No código            | Significado                                               |
+| ----------------------------- | -------------------- | --------------------------------------------------------- |
+| Arquivo de remessa            | remittance           | Arquivo CNAB enviado pela empresa (`.rem`)                |
+| Registro                      | record               | Uma linha do arquivo: header, detalhe ou trailer          |
+| Tipo de registro              | `recordType`         | Coluna 1: `0` header, `1` detalhe, `9` trailer            |
+| Título / recebível            | `Receivable`         | O que cada detalhe representa: uma duplicata a receber    |
+| Chave de acesso da NF-e       | `invoiceAccessKey`   | Identificador de 44 caracteres consultado na API          |
+| Dígito verificador da chave   | `hasValidCheckDigit` | Resultado do módulo 11 sobre a chave                      |
+| Total de registros do trailer | `recordCount`        | Quantidade de linhas declarada no trailer                 |
+| Situação                      | `status`             | Resposta da API para a chave (autorizada, cancelada etc.) |
+
+## 8. Fontes
 
 - Bradesco —
   [Layout de Arquivo Cobrança CNAB 400 (manual 4008.524.0121)](https://assets.bradesco/content/dam/portal-bradesco/assets/pessoajuridica/pdf/4008-524-0121-layout-cobranca-versao-portugues.pdf).
