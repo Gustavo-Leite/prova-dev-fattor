@@ -15,6 +15,7 @@ projeto, que apontarão para os ADRs.
 | [0005](0005-internationalization.md)            | next-intl sem prefixo de URL, idioma do cookie ou do navegador              | Aceito |
 | [0006](0006-server-environment.md)              | Ambiente do servidor validado na inicialização, sem valores padrão          | Aceito |
 | [0007](0007-quality-and-ci.md)                  | O que bloqueia um merge: testes, lint, E2E com axe e varredura de segredos  | Aceito |
+| [0008](0008-security-headers.md)                | Cabeçalhos de segurança HTTP; CSP de scripts com nonce quando houver UI     | Aceito |
 
 Cada ADR segue o mesmo formato: Contexto, Opções consideradas, Decisão (a primeira linha resume a
 decisão), Consequências e Evidências (arquivos que aplicam a regra e o commit em que ela entrou).
