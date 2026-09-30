@@ -9,6 +9,7 @@
   },
   "remittance": {
     "upload": {
+      "heading": "Arquivo de remessa",
       "instructions": "Arraste o arquivo de remessa aqui ou clique para escolher",
       "chooseAnother": "Escolher outro arquivo",
       "hint": "CNAB 444 (.rem ou .txt), até {maxKilobytes} KB e {maxReceivables} títulos",
@@ -17,6 +18,47 @@
       "invalidCheckDigits": "{count, plural, one {# chave tem} other {# chaves têm}} dígito verificador inválido; a consulta é feita mesmo assim.",
       "rejectedFile": "Arquivo: {fileName}",
       "truncated": "Há mais problemas além destes."
+    },
+    "check": {
+      "heading": "Situação das notas",
+      "submit": "Consultar situações",
+      "checking": "Consultando…",
+      "again": "Consultar de novo",
+      "retry": "Tentar de novo",
+      "started": "Consultando {total, plural, one {# título} other {# títulos}} na API da Fattor.",
+      "progress": "{done} de {total} consultados",
+      "completed": "Consulta concluída: {total, plural, one {# título consultado} other {# títulos consultados}}{failed, plural, =0 {.} one {, # com falha.} other {, # com falha.}}",
+      "credentialsRejected": "A API da Fattor recusou as credenciais do servidor, então a consulta foi interrompida. Tente mais tarde.",
+      "interrupted": "A consulta foi interrompida antes do fim. Os títulos sem situação podem ser consultados de novo.",
+      "summaryLabel": "Resumo por situação",
+      "summaryItem": "{label}: {count}",
+      "tableCaption": "Situação de cada título do arquivo, na ordem das linhas",
+      "lineColumn": "Linha",
+      "keyColumn": "Chave de acesso da NF-e",
+      "statusColumn": "Situação",
+      "lineLabel": "Linha {lineNumber}"
+    },
+    "statuses": {
+      "authorized": "Autorizada",
+      "cancelled": "Cancelada",
+      "rejected": "Rejeitada",
+      "denied": "Denegada",
+      "not_found": "Não encontrada",
+      "failed": "Falhou",
+      "pending": "Consultando…",
+      "notChecked": "Não consultado"
+    },
+    "failureReasons": {
+      "UPSTREAM_TIMEOUT": "Falhou: sem resposta a tempo",
+      "UPSTREAM_UNAVAILABLE": "Falhou: API indisponível",
+      "UPSTREAM_INVALID_RESPONSE": "Falhou: resposta inválida da API"
+    },
+    "requestErrors": {
+      "NETWORK_ERROR": "Não foi possível falar com o servidor. Verifique a conexão e tente de novo.",
+      "UNEXPECTED_RESPONSE": "O servidor respondeu de forma inesperada (código {status}).",
+      "INVALID_REQUEST": "O servidor não aceitou o envio do arquivo.",
+      "CROSS_SITE_REQUEST": "O envio foi bloqueado por vir de outra origem.",
+      "LENGTH_REQUIRED": "O navegador não informou o tamanho do arquivo."
     },
     "rejections": {
       "INVALID_FILE": "O arquivo não segue o layout CNAB 444.",

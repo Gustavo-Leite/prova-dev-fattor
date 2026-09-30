@@ -9,6 +9,7 @@
   },
   "remittance": {
     "upload": {
+      "heading": "Remittance file",
       "instructions": "Drag the remittance file here or click to choose it",
       "chooseAnother": "Choose another file",
       "hint": "CNAB 444 (.rem or .txt), up to {maxKilobytes} KB and {maxReceivables} receivables",
@@ -17,6 +18,47 @@
       "invalidCheckDigits": "{count, plural, one {# key has} other {# keys have}} an invalid check digit; they will be checked anyway.",
       "rejectedFile": "File: {fileName}",
       "truncated": "There are more problems besides these."
+    },
+    "check": {
+      "heading": "Invoice statuses",
+      "submit": "Check statuses",
+      "checking": "Checking…",
+      "again": "Check again",
+      "retry": "Try again",
+      "started": "Checking {total, plural, one {# receivable} other {# receivables}} with the Fattor API.",
+      "progress": "{done} of {total} checked",
+      "completed": "Check finished: {total, plural, one {# receivable checked} other {# receivables checked}}{failed, plural, =0 {.} other {, # failed.}}",
+      "credentialsRejected": "The Fattor API refused the server credentials, so the check was stopped. Try again later.",
+      "interrupted": "The check stopped before the end. Receivables without a status can be checked again.",
+      "summaryLabel": "Summary by status",
+      "summaryItem": "{label}: {count}",
+      "tableCaption": "Status of each receivable in the file, in line order",
+      "lineColumn": "Line",
+      "keyColumn": "NF-e access key",
+      "statusColumn": "Status",
+      "lineLabel": "Line {lineNumber}"
+    },
+    "statuses": {
+      "authorized": "Authorized",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected",
+      "denied": "Denied",
+      "not_found": "Not found",
+      "failed": "Failed",
+      "pending": "Checking…",
+      "notChecked": "Not checked"
+    },
+    "failureReasons": {
+      "UPSTREAM_TIMEOUT": "Failed: no answer in time",
+      "UPSTREAM_UNAVAILABLE": "Failed: API unavailable",
+      "UPSTREAM_INVALID_RESPONSE": "Failed: invalid API response"
+    },
+    "requestErrors": {
+      "NETWORK_ERROR": "The server could not be reached. Check your connection and try again.",
+      "UNEXPECTED_RESPONSE": "The server gave an unexpected answer (code {status}).",
+      "INVALID_REQUEST": "The server did not accept the upload.",
+      "CROSS_SITE_REQUEST": "The upload was blocked because it came from another origin.",
+      "LENGTH_REQUIRED": "The browser did not send the file size."
     },
     "rejections": {
       "INVALID_FILE": "The file does not follow the CNAB 444 layout.",

@@ -35,14 +35,17 @@ type UploadState =
 
 export interface RemittanceUploadProps {
   readonly limits: RemittanceUploadLimits;
+  readonly onReady?: (file: File, receivables: readonly Receivable[]) => void;
+  readonly onReset?: () => void;
 }
 
 function preventBrowserFileOpen(event: globalThis.DragEvent) {
   event.preventDefault();
 }
 
-export function RemittanceUpload({ limits }: RemittanceUploadProps) {
+export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadProps) {
   const t = useTranslations("remittance");
+  const headingId = useId();
   const inputId = useId();
   const hintId = useId();
   const alertId = useId();
@@ -60,6 +63,7 @@ export function RemittanceUpload({ limits }: RemittanceUploadProps) {
         return;
       }
       const selection = ++latestSelection.current;
+      onReset?.();
       if (files.length > 1) {
         setState({
           phase: "rejected",
@@ -74,18 +78,19 @@ export function RemittanceUpload({ limits }: RemittanceUploadProps) {
       if (selection !== latestSelection.current) {
         return;
       }
-      setState(
-        validation.ok
-          ? { phase: "ready", fileName: file.name, receivables: validation.receivables }
-          : {
-              phase: "rejected",
-              attempt: selection,
-              fileName: file.name,
-              rejection: validation.rejection,
-            },
-      );
+      if (!validation.ok) {
+        setState({
+          phase: "rejected",
+          attempt: selection,
+          fileName: file.name,
+          rejection: validation.rejection,
+        });
+        return;
+      }
+      setState({ phase: "ready", fileName: file.name, receivables: validation.receivables });
+      onReady?.(file, validation.receivables);
     },
-    [limits],
+    [limits, onReady, onReset],
   );
 
   useEffect(() => {
@@ -139,7 +144,10 @@ export function RemittanceUpload({ limits }: RemittanceUploadProps) {
       : 0;
 
   return (
-    <section className="flex w-full max-w-2xl flex-col gap-4">
+    <section aria-labelledby={headingId} className="flex w-full flex-col gap-4">
+      <h2 id={headingId} className="sr-only">
+        {t("upload.heading")}
+      </h2>
       <label
         htmlFor={inputId}
         onDragOver={handleDragOver}

@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { maxUploadBytes } from "@/app/api/remittances/handle-remittance-upload";
 import { defaultRemittanceCheckPolicy } from "@/application/remittance/check-remittance";
-import { RemittanceUpload } from "@/features/remittance/remittance-upload";
+import { RemittanceChecker } from "@/features/remittance/remittance-checker";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -26,7 +26,7 @@ export default async function Home() {
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground">{t("description")}</p>
       </header>
-      <RemittanceUpload limits={uploadLimits} />
+      <RemittanceChecker limits={uploadLimits} />
     </main>
   );
 }

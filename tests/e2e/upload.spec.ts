@@ -11,12 +11,16 @@ function fileInput(page: Page) {
   return page.locator('input[type="file"]');
 }
 
+function uploadSection(page: Page) {
+  return page.locator("section", { has: fileInput(page) });
+}
+
 function uploadAlert(page: Page) {
-  return page.getByRole("main").getByRole("alert");
+  return uploadSection(page).getByRole("alert");
 }
 
 function uploadStatus(page: Page) {
-  return page.getByRole("main").getByRole("status");
+  return uploadSection(page).getByRole("status");
 }
 
 async function uploadBuffer(page: Page, name: string, content: string | Buffer) {

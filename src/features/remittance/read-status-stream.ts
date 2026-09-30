@@ -98,8 +98,9 @@ function decodeEvent(
 function* splitLines(buffer: { text: string }): Generator<string> {
   let newline = buffer.text.indexOf("\n");
   while (newline >= 0) {
-    yield buffer.text.slice(0, newline);
+    const line = buffer.text.slice(0, newline);
     buffer.text = buffer.text.slice(newline + 1);
+    yield line;
     newline = buffer.text.indexOf("\n");
   }
 }
@@ -121,6 +122,22 @@ export async function* readStatusStream(
     return decodeEvent(parseJson(line), expected, state) ?? { type: "interrupted" };
   };
 
+  const waitForServerToClose = async (): Promise<void> => {
+    if (buffer.text.trim() !== "") {
+      return;
+    }
+    try {
+      for (;;) {
+        const next = await reader.read();
+        if (next.done || decoder.decode(next.value, { stream: true }).trim() !== "") {
+          return;
+        }
+      }
+    } catch {
+      return;
+    }
+  };
+
   try {
     for (;;) {
       let chunk: ReadableStreamReadResult<Uint8Array>;
@@ -138,11 +155,16 @@ export async function* readStatusStream(
       buffer.text += decoder.decode(chunk.value, { stream: true });
       for (const line of splitLines(buffer)) {
         const event = handle(line);
-        if (event) {
-          yield event;
-          if (event.type !== "started" && event.type !== "result") {
-            return;
-          }
+        if (!event) {
+          continue;
+        }
+        yield event;
+        if (event.type === "interrupted") {
+          return;
+        }
+        if (event.type === "completed" || event.type === "failed") {
+          await waitForServerToClose();
+          return;
         }
       }
     }

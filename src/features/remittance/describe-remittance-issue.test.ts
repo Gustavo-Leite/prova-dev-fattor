@@ -6,6 +6,7 @@ import type { RemittanceMessage } from "@/features/remittance/describe-remittanc
 import {
   describeRemittanceIssue,
   describeRemittanceRejection,
+  describeSubmitError,
 } from "@/features/remittance/describe-remittance-issue";
 import type { RemittanceFileRejection } from "@/features/remittance/validate-remittance-file";
 import en from "@/i18n/messages/en.json";
@@ -114,6 +115,38 @@ describe("describeRemittanceIssue", () => {
     expect(render("pt-BR", describeRemittanceIssue(issue))).toBe(
       "Linha 12: o trailer informa 13 registros, mas o arquivo tem 12.",
     );
+  });
+});
+
+describe("describeSubmitError", () => {
+  const everySubmitError: readonly Parameters<typeof describeSubmitError>[0][] = [
+    { code: "NETWORK_ERROR" },
+    { code: "UNEXPECTED_RESPONSE", status: 502 },
+    { code: "INVALID_REQUEST" },
+    { code: "CROSS_SITE_REQUEST" },
+    { code: "LENGTH_REQUIRED" },
+    { code: "FILE_TOO_LARGE", maxBytes: 131_072 },
+    { code: "TOO_MANY_RECEIVABLES", max: 200, actual: 250 },
+    { code: "INVALID_FILE", errors: [{ code: "EMPTY_FILE" }], truncated: false },
+  ];
+
+  it.each(Object.keys(translators) as (keyof typeof translators)[])(
+    "has a complete message for every request error in %s",
+    (locale) => {
+      for (const error of everySubmitError) {
+        const text = render(locale, describeSubmitError(error).summary);
+        expect(text).not.toMatch(/[{}]|remittance\./);
+      }
+    },
+  );
+
+  it("reuses the upload messages for rejections the server repeats", () => {
+    expect(describeSubmitError({ code: "FILE_TOO_LARGE", maxBytes: 131_072 })).toEqual(
+      describeRemittanceRejection({ code: "FILE_TOO_LARGE", maxBytes: 131_072 }),
+    );
+    expect(
+      render("pt-BR", describeSubmitError({ code: "UNEXPECTED_RESPONSE", status: 502 }).summary),
+    ).toBe("O servidor respondeu de forma inesperada (código 502).");
   });
 });
 

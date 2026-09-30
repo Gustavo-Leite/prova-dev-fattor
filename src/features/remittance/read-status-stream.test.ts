@@ -39,23 +39,26 @@ interface SourceOptions {
 function streamOfBytes(chunks: readonly Uint8Array[], options: SourceOptions = {}) {
   let cancelled = false;
   let next = 0;
-  const stream = new ReadableStream<Uint8Array>({
-    pull(controller) {
-      const chunk = chunks[next++];
-      if (chunk) {
-        controller.enqueue(chunk);
-      } else if (options.keepOpen === true) {
-        return new Promise<void>(() => undefined);
-      } else if (options.error === undefined) {
-        controller.close();
-      } else {
-        controller.error(options.error);
-      }
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        const chunk = chunks[next++];
+        if (chunk) {
+          controller.enqueue(chunk);
+        } else if (options.keepOpen === true) {
+          return new Promise<void>(() => undefined);
+        } else if (options.error === undefined) {
+          controller.close();
+        } else {
+          controller.error(options.error);
+        }
+      },
+      cancel() {
+        cancelled = true;
+      },
     },
-    cancel() {
-      cancelled = true;
-    },
-  });
+    { highWaterMark: 0 },
+  );
   return { stream, cancelled: () => cancelled };
 }
 
@@ -193,6 +196,34 @@ describe("readStatusStream", () => {
     const { events, cancelled } = await collect(chunks, { keepOpen: true });
     expect(events.at(-1)).toEqual(interrupted);
     expect(events).not.toContainEqual(completed);
+    expect(cancelled()).toBe(true);
+  });
+
+  it("lets the server close a completed stream instead of cancelling it", async () => {
+    const { events, cancelled } = await collect([
+      toLines(started, authorized, timedOut),
+      toLines(completed),
+    ]);
+    expect(events.at(-1)).toEqual(completed);
+    expect(cancelled()).toBe(false);
+  });
+
+  it("waits through empty chunks for the server to close a completed stream", async () => {
+    const { events, cancelled } = await collectBytes([
+      new TextEncoder().encode(toLines(started, authorized, timedOut, completed)),
+      new Uint8Array(),
+      new TextEncoder().encode("\n"),
+    ]);
+    expect(events.at(-1)).toEqual(completed);
+    expect(cancelled()).toBe(false);
+  });
+
+  it("cancels a completed stream that keeps sending data", async () => {
+    const { events, cancelled } = await collect(
+      [toLines(started, authorized, timedOut, completed), toLines(authorized)],
+      { keepOpen: true },
+    );
+    expect(events.at(-1)).toEqual(completed);
     expect(cancelled()).toBe(true);
   });
 

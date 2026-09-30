@@ -1,10 +1,17 @@
 import type { RecordTypeCode } from "@/domain/cnab/layout";
 import type { Cnab444Issue } from "@/domain/cnab/parse-cnab-444";
+import type { SubmitError } from "@/features/remittance/submit-remittance";
 import type { RemittanceFileRejection } from "@/features/remittance/validate-remittance-file";
+
+type ServerOnlySubmitError = Exclude<
+  SubmitError["code"],
+  RemittanceFileRejection["code"] | "ABORTED"
+>;
 
 export type RemittanceMessageKey =
   | `issues.${Cnab444Issue["code"] | "UNEXPECTED_BLANK_LINE"}`
-  | `rejections.${RemittanceFileRejection["code"]}`;
+  | `rejections.${RemittanceFileRejection["code"]}`
+  | `requestErrors.${ServerOnlySubmitError}`;
 
 export interface RemittanceMessage {
   readonly key: RemittanceMessageKey;
@@ -100,5 +107,29 @@ export function describeRemittanceRejection(
       return { summary: { key: `rejections.${rejection.code}` }, details: [], truncated: false };
     default:
       return assertNever(rejection);
+  }
+}
+
+export function describeSubmitError(
+  error: Exclude<SubmitError, { code: "ABORTED" }>,
+): RemittanceRejectionDescription {
+  switch (error.code) {
+    case "INVALID_FILE":
+    case "TOO_MANY_RECEIVABLES":
+    case "FILE_TOO_LARGE":
+      return describeRemittanceRejection(error);
+    case "UNEXPECTED_RESPONSE":
+      return {
+        summary: { key: "requestErrors.UNEXPECTED_RESPONSE", values: { status: error.status } },
+        details: [],
+        truncated: false,
+      };
+    case "NETWORK_ERROR":
+    case "INVALID_REQUEST":
+    case "CROSS_SITE_REQUEST":
+    case "LENGTH_REQUIRED":
+      return { summary: { key: `requestErrors.${error.code}` }, details: [], truncated: false };
+    default:
+      return assertNever(error);
   }
 }
