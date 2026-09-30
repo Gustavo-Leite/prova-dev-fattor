@@ -14,7 +14,11 @@ export type RemittanceFileRejection =
   | { readonly code: "UNREADABLE_FILE" };
 
 export type RemittanceFileValidation =
-  | { readonly ok: true; readonly receivables: readonly Receivable[] }
+  | {
+      readonly ok: true;
+      readonly receivables: readonly Receivable[];
+      readonly lines: readonly string[];
+    }
   | { readonly ok: false; readonly rejection: RemittanceFileRejection };
 
 export async function validateRemittanceFile(

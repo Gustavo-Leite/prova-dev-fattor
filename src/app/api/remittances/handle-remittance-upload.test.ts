@@ -265,6 +265,25 @@ describe("remittance upload streaming", () => {
     });
   });
 
+  it("sends only the protocol fields, never the raw record lines", async () => {
+    const response = await createRemittanceUploadHandler(trackingGateway())(
+      await uploadRequest(sampleFile),
+    );
+
+    const results = (await readLines(response)).slice(1, -1);
+
+    for (const result of results) {
+      expect(Object.keys(result as object).sort()).toEqual([
+        "hasValidCheckDigit",
+        "invoiceAccessKey",
+        "lineNumber",
+        "outcome",
+        "status",
+        "type",
+      ]);
+    }
+  });
+
   it("stops the lookups when the client stops reading", async () => {
     const tracker = trackingGateway(
       (_key, signal) =>

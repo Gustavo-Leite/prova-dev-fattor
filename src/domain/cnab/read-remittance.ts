@@ -11,7 +11,11 @@ export type RemittanceRejection =
   | { readonly code: "TOO_MANY_RECEIVABLES"; readonly max: number; readonly actual: number };
 
 export type RemittanceReading =
-  | { readonly ok: true; readonly receivables: readonly Receivable[] }
+  | {
+      readonly ok: true;
+      readonly receivables: readonly Receivable[];
+      readonly lines: readonly string[];
+    }
   | { readonly ok: false; readonly rejection: RemittanceRejection };
 
 export interface RemittanceReadingLimits {
@@ -32,7 +36,7 @@ export function readRemittance(
       rejection: { code: "INVALID_FILE", errors: parsed.errors, truncated: parsed.truncated },
     };
   }
-  const { receivables } = parsed;
+  const { receivables, lines } = parsed;
   if (receivables.length > limits.maxReceivables) {
     return {
       ok: false,
@@ -43,5 +47,5 @@ export function readRemittance(
       },
     };
   }
-  return { ok: true, receivables };
+  return { ok: true, receivables, lines };
 }

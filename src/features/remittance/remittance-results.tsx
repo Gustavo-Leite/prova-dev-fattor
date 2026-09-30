@@ -5,6 +5,8 @@ import { useState } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { createDialogHandle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -22,6 +24,7 @@ import type {
   RowTone,
 } from "@/features/remittance/remittance-check-state";
 import { summarizeRows, toneOf } from "@/features/remittance/remittance-check-state";
+import { ReceivableDetailDialog } from "@/features/remittance/receivable-detail-dialog";
 import { ResultsPagination } from "@/features/remittance/results-pagination";
 import { ResultsToolbar } from "@/features/remittance/results-toolbar";
 import type { PageSize } from "@/features/remittance/select-visible-rows";
@@ -29,11 +32,13 @@ import { defaultPageSize, selectVisibleRows } from "@/features/remittance/select
 
 export interface RemittanceResultsProps {
   readonly rows: readonly ReceivableRow[];
+  readonly lines: readonly string[];
   readonly state: RemittanceCheckState;
 }
 
-export function RemittanceResults({ rows, state }: RemittanceResultsProps) {
+export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps) {
   const t = useTranslations("remittance");
+  const [detailHandle] = useState(() => createDialogHandle<number>());
   const [tones, setTones] = useState<ReadonlySet<RowTone>>(() => new Set());
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
@@ -54,6 +59,17 @@ export function RemittanceResults({ rows, state }: RemittanceResultsProps) {
     tone === "pending" && !isChecking ? t("statuses.notChecked") : t(`statuses.${tone}`);
   const rowLabel = (row: ReceivableRow) =>
     row.state.kind === "failed" ? t(`failureReasons.${row.state.reason}`) : toneLabel(toneOf(row));
+
+  const detailTrigger = (row: ReceivableRow) => (
+    <DialogTrigger
+      handle={detailHandle}
+      payload={row.lineNumber}
+      aria-label={t("detail.openLabel", { lineNumber: row.lineNumber })}
+      render={<Button variant="outline" size="sm" />}
+    >
+      {t("detail.open")}
+    </DialogTrigger>
+  );
 
   const toggleTone = (tone: RowTone) => {
     setTones((current) => {
@@ -162,6 +178,9 @@ export function RemittanceResults({ rows, state }: RemittanceResultsProps) {
                       <TableHead className="w-16">{t("check.lineColumn")}</TableHead>
                       <TableHead>{t("check.keyColumn")}</TableHead>
                       <TableHead>{t("check.statusColumn")}</TableHead>
+                      <TableHead>
+                        <span className="sr-only">{t("detail.column")}</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -172,6 +191,7 @@ export function RemittanceResults({ rows, state }: RemittanceResultsProps) {
                         <TableCell>
                           <StatusBadge tone={toneOf(row)} label={rowLabel(row)} />
                         </TableCell>
+                        <TableCell className="text-right">{detailTrigger(row)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -193,6 +213,7 @@ export function RemittanceResults({ rows, state }: RemittanceResultsProps) {
                     <span className="font-mono text-[0.6875rem] tracking-tight break-all text-muted-foreground">
                       {row.invoiceAccessKey}
                     </span>
+                    <div className="flex justify-end">{detailTrigger(row)}</div>
                   </li>
                 ))}
               </ul>
@@ -208,6 +229,12 @@ export function RemittanceResults({ rows, state }: RemittanceResultsProps) {
             count={visible.filteredCount}
             onPageChange={setPageIndex}
             onPageSizeChange={changePageSize}
+          />
+          <ReceivableDetailDialog
+            handle={detailHandle}
+            rows={rows}
+            lines={lines}
+            statusLabel={rowLabel}
           />
         </>
       )}

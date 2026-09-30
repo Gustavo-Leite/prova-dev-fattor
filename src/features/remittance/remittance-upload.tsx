@@ -35,7 +35,11 @@ type UploadState =
 
 export interface RemittanceUploadProps {
   readonly limits: RemittanceUploadLimits;
-  readonly onReady?: (file: File, receivables: readonly Receivable[]) => void;
+  readonly onReady?: (
+    file: File,
+    receivables: readonly Receivable[],
+    lines: readonly string[],
+  ) => void;
   readonly onReset?: () => void;
 }
 
@@ -88,7 +92,7 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
         return;
       }
       setState({ phase: "ready", fileName: file.name, receivables: validation.receivables });
-      onReady?.(file, validation.receivables);
+      onReady?.(file, validation.receivables, validation.lines);
     },
     [limits, onReady, onReset],
   );

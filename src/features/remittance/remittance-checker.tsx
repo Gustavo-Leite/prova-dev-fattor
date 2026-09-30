@@ -19,6 +19,7 @@ import type { RemittanceUploadLimits } from "@/features/remittance/validate-remi
 interface Selection {
   readonly file: File;
   readonly receivables: readonly Receivable[];
+  readonly lines: readonly string[];
 }
 
 export interface RemittanceCheckerProps {
@@ -46,9 +47,12 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
     setSelection(null);
   }, [cancelInFlight]);
 
-  const handleReady = useCallback((file: File, receivables: readonly Receivable[]) => {
-    setSelection({ file, receivables });
-  }, []);
+  const handleReady = useCallback(
+    (file: File, receivables: readonly Receivable[], lines: readonly string[]) => {
+      setSelection({ file, receivables, lines });
+    },
+    [],
+  );
 
   const check = async (current: Selection) => {
     cancelInFlight();
@@ -100,7 +104,11 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
               {actionLabel}
             </Button>
           </div>
-          <RemittanceResults rows={deriveRows(selection.receivables, state)} state={state} />
+          <RemittanceResults
+            rows={deriveRows(selection.receivables, state)}
+            lines={selection.lines}
+            state={state}
+          />
         </section>
       )}
     </div>

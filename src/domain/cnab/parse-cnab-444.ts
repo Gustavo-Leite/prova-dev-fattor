@@ -34,7 +34,11 @@ export type Cnab444Issue =
   | { readonly code: "INVALID_ACCESS_KEY_FORMAT"; readonly lineNumber: number };
 
 export type Cnab444ParseResult =
-  | { readonly ok: true; readonly receivables: readonly Receivable[] }
+  | {
+      readonly ok: true;
+      readonly receivables: readonly Receivable[];
+      readonly lines: readonly string[];
+    }
   | { readonly ok: false; readonly errors: readonly Cnab444Issue[]; readonly truncated: boolean };
 
 export const maxReportedIssues = 50;
@@ -167,5 +171,5 @@ export function parseCnab444(content: string): Cnab444ParseResult {
       truncated: errors.length > maxReportedIssues,
     };
   }
-  return { ok: true, receivables };
+  return { ok: true, receivables, lines };
 }
