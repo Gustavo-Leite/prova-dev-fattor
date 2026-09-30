@@ -33,6 +33,9 @@ export type RemittanceCheckEvent =
   | { readonly type: "completed" }
   | { readonly type: "failed"; readonly reason: "UPSTREAM_REJECTED_CREDENTIALS" };
 
+export type RemittanceStreamEvent =
+  { readonly type: "started"; readonly total: number } | RemittanceCheckEvent;
+
 export type RemittanceCheck =
   | { readonly ok: false; readonly rejection: RemittanceRejection }
   | {
