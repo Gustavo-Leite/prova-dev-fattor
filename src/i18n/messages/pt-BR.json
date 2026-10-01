@@ -218,6 +218,34 @@
       }
     }
   },
+  "signIn": {
+    "metadataTitle": "Entrar",
+    "title": "Entrar",
+    "description": "Use o e-mail e a senha de acesso à API da Fattor.",
+    "demoCredentialsLink": "Ver as credenciais de demonstração na documentação da API",
+    "email": {
+      "label": "E-mail",
+      "errors": {
+        "required": "Informe o e-mail.",
+        "invalid": "Informe um e-mail válido, como nome@empresa.com.br.",
+        "tooLong": "O e-mail pode ter no máximo {max} caracteres."
+      }
+    },
+    "password": {
+      "label": "Senha",
+      "toggleVisibility": "Mostrar senha",
+      "errors": {
+        "required": "Informe a senha.",
+        "tooLong": "A senha pode ter no máximo {max} caracteres."
+      }
+    },
+    "formErrors": {
+      "rejected": "E-mail ou senha incorretos.",
+      "unavailable": "Não foi possível entrar agora. Tente de novo em instantes."
+    },
+    "submit": "Entrar",
+    "submitting": "Entrando…"
+  },
   "notFound": {
     "title": "Página não encontrada",
     "description": "A página que você procura não existe.",

@@ -218,6 +218,34 @@
       }
     }
   },
+  "signIn": {
+    "metadataTitle": "Sign in",
+    "title": "Sign in",
+    "description": "Use the email and password for the Fattor API.",
+    "demoCredentialsLink": "See the demo credentials in the API documentation",
+    "email": {
+      "label": "Email",
+      "errors": {
+        "required": "Enter your email.",
+        "invalid": "Enter a valid email, such as name@company.com.",
+        "tooLong": "The email can have at most {max} characters."
+      }
+    },
+    "password": {
+      "label": "Password",
+      "toggleVisibility": "Show password",
+      "errors": {
+        "required": "Enter your password.",
+        "tooLong": "The password can have at most {max} characters."
+      }
+    },
+    "formErrors": {
+      "rejected": "Incorrect email or password.",
+      "unavailable": "Could not sign in right now. Try again in a moment."
+    },
+    "submit": "Sign in",
+    "submitting": "Signing in…"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist.",
