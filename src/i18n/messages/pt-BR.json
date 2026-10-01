@@ -222,7 +222,13 @@
   "signIn": {
     "metadataTitle": "Entrar",
     "title": "Entrar",
-    "description": "Use o e-mail e a senha de acesso à API da Fattor.",
+    "hero": {
+      "tagline": "Consulte a situação das notas da sua remessa CNAB 444."
+    },
+    "help": {
+      "label": "Sobre as credenciais",
+      "content": "Use o e-mail e a senha de acesso à API da Fattor."
+    },
     "demoCredentialsLink": "Ver as credenciais de demonstração na documentação da API",
     "email": {
       "label": "E-mail",

@@ -22,7 +22,7 @@ resultados aos poucos.
 ## 2. API externa (Fattor)
 
 Documentada em OpenAPI (`/public/prova-dev/openapi`). Só a URL base vem do ambiente
-(`FATTOR_API_BASE_URL`; ver `.env.example`). O login é feito por cada usuário na página `/login`:
+(`FATTOR_API_BASE_URL`; ver `.env.example`). O login é feito por cada usuário na página `/entrar`:
 o servidor chama `POST /login` e guarda o token num cookie `session` HttpOnly, que o JavaScript
 da página não lê. Não há credenciais no servidor.
 
@@ -46,8 +46,8 @@ Mapeamento da situação para o domínio (código em inglês):
 - **Token:** o do cookie `session`, enviado em cada consulta. O cookie expira 60 s antes do token
   (ou na metade da validade, se for curta) e dura no máximo 24 h.
 - **401 numa consulta:** a sessão foi recusada; a verificação do arquivo inteiro é interrompida,
-  sem nova tentativa nem novo login. O usuário entra de novo na página `/login`.
-- **Login recusado (400, 401 ou 403):** a página `/login` informa e-mail ou senha incorretos.
+  sem nova tentativa nem novo login. O usuário entra de novo na página `/entrar`.
+- **Login recusado (400, 401 ou 403):** a página `/entrar` informa e-mail ou senha incorretos.
 - **Tempo limite:** 5 s por tentativa de consulta, contando o corpo da resposta; o login tem no
   máximo 10 s.
 - **Novas tentativas:** até 2 por consulta, com espera exponencial e variação aleatória, em falha
@@ -56,7 +56,7 @@ Mapeamento da situação para o domínio (código em inglês):
 - **Redirecionamentos não são seguidos:** uma resposta 3xx é tratada como indisponibilidade, para
   que credenciais e token nunca sejam enviados a outro endereço.
 - **Rotas protegidas:** sem um cookie `session` bem formado, a página `/` redireciona para
-  `/login`; `/cnab-444` continua pública.
+  `/entrar`; `/cnab-444` continua pública.
 - **Resposta validada:** corpo fora do contrato ou `chave_nfe` diferente da chave consultada é
   resposta inválida.
 

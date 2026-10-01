@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { submitSignIn } from "@/app/login/submit-sign-in";
+import { submitSignIn } from "@/app/entrar/submit-sign-in";
 import type { SignInFormState } from "@/features/session/sign-in-fields";
 import { getServerEnv } from "@/infra/env";
 import { createFattorAuthenticator } from "@/infra/fattor/fattor-authenticator";

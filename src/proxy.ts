@@ -8,7 +8,7 @@ const contentSecurityPolicyHeader = "Content-Security-Policy";
 
 const protectedPaths: readonly string[] = ["/"];
 
-const signInPath = "/login";
+const signInPath = "/entrar";
 
 function hasSession(request: NextRequest): boolean {
   return readSessionToken(request.cookies.get(sessionCookieName)?.value) !== null;

@@ -124,11 +124,11 @@ describe("proxy session guard", () => {
       "with an empty session cookie",
       new NextRequest("http://localhost/", { headers: { cookie: "session=" } }),
     ],
-  ])("sends the home page to the login page %s", (_description, request) => {
+  ])("sends the home page to the sign-in page %s", (_description, request) => {
     const response = proxy(request);
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/login");
+    expect(response.headers.get("location")).toBe("http://localhost/entrar");
     expect(response.headers.get("x-middleware-next")).toBeNull();
   });
 
@@ -140,7 +140,7 @@ describe("proxy session guard", () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/login");
+    expect(response.headers.get("location")).toBe("http://localhost/entrar");
   });
 
   it("keeps the content security policy on the redirect", () => {
@@ -156,7 +156,7 @@ describe("proxy session guard", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it.each(["/cnab-444", "/login", "/this-page-does-not-exist"])(
+  it.each(["/cnab-444", "/entrar", "/login", "/this-page-does-not-exist"])(
     "lets %s through without a session",
     (path) => {
       const response = proxy(new NextRequest(new URL(path, "http://localhost")));
@@ -169,6 +169,6 @@ describe("proxy session guard", () => {
   it("guards the home page even with a query string", () => {
     const response = proxy(new NextRequest("http://localhost/?file=x"));
 
-    expect(response.headers.get("location")).toBe("http://localhost/login");
+    expect(response.headers.get("location")).toBe("http://localhost/entrar");
   });
 });

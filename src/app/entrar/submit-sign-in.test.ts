@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { submitSignIn } from "@/app/login/submit-sign-in";
+import { submitSignIn } from "@/app/entrar/submit-sign-in";
 import type {
   Authenticator,
   SignInCredentials,

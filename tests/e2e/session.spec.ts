@@ -12,10 +12,10 @@ const sampleFile = {
 test.describe("without a session", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("sends the home page to the login page", async ({ page }) => {
+  test("sends the home page to the sign-in page", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/entrar$/);
   });
 
   test("keeps the CNAB 444 layout page public", async ({ page }) => {

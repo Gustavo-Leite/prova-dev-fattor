@@ -4,8 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { AppNav } from "@/components/app-nav";
-import { LanguageSwitcher } from "@/features/preferences/language-switcher";
-import { ThemeSwitcher } from "@/features/preferences/theme-switcher";
+import { PreferenceControls } from "@/features/preferences/preference-controls";
 import type { Locale } from "@/lib/locale";
 import type { Theme } from "@/lib/theme";
 
@@ -44,10 +43,7 @@ export async function AppBar({ locale, theme, logo }: AppBarProps) {
             ]}
           />
         </div>
-        <div className="col-start-2 row-start-1 flex shrink-0 items-center gap-2">
-          <ThemeSwitcher current={theme} />
-          <LanguageSwitcher current={locale} />
-        </div>
+        <PreferenceControls locale={locale} theme={theme} className="col-start-2 row-start-1" />
       </div>
     </header>
   );

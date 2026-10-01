@@ -222,7 +222,13 @@
   "signIn": {
     "metadataTitle": "Sign in",
     "title": "Sign in",
-    "description": "Use the email and password for the Fattor API.",
+    "hero": {
+      "tagline": "Check the status of the invoices in your CNAB 444 remittance."
+    },
+    "help": {
+      "label": "About the credentials",
+      "content": "Use the email and password for the Fattor API."
+    },
     "demoCredentialsLink": "See the demo credentials in the API documentation",
     "email": {
       "label": "Email",
