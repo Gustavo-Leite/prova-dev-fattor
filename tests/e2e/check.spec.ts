@@ -47,6 +47,29 @@ test.describe("status check (pt-BR)", () => {
     expect(requests).toBe(1);
   });
 
+  test("shows a quiet skeleton while a line waits for its status", async ({ page }) => {
+    let releaseResponse: () => void = () => undefined;
+    const responseReleased = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    await page.route("**/api/remittances", async (route) => {
+      await responseReleased;
+      await fulfillStream(fullStream())(route);
+    });
+
+    await chooseSample(page);
+
+    const row = visibleRowFor(page, sampleReceivables[0]?.key ?? "");
+    const skeleton = row.locator('[aria-hidden="true"][class*="animate-pulse"]');
+    await expect(skeleton).toBeVisible();
+    await expect(row).toContainText("Consultando…");
+
+    releaseResponse();
+
+    await expect(row).toContainText("Autorizada");
+    await expect(skeleton).toHaveCount(0);
+  });
+
   test("announces the check in a live region that exists before the file", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream()));
     await page.evaluate(() => {

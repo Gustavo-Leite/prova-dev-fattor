@@ -204,6 +204,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
                           row={row}
                           handle={detailHandle}
                           statusLabel={rowLabel(row)}
+                          isChecking={isChecking}
                         />
                       ))}
                     </TableBody>
@@ -218,6 +219,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
                       row={row}
                       handle={detailHandle}
                       statusLabel={rowLabel(row)}
+                      isChecking={isChecking}
                     />
                   ))}
                 </ul>
@@ -346,6 +348,28 @@ interface RowViewProps {
   readonly row: ReceivableRow;
   readonly handle: DialogHandle<number>;
   readonly statusLabel: string;
+  readonly isChecking: boolean;
+}
+
+interface RowStatusProps {
+  readonly row: ReceivableRow;
+  readonly label: string;
+  readonly isChecking: boolean;
+}
+
+function RowStatus({ row, label, isChecking }: RowStatusProps) {
+  if (isChecking && toneOf(row) === "pending") {
+    return (
+      <span className="inline-flex align-middle">
+        <span
+          aria-hidden="true"
+          className="block h-5 w-20 rounded-full border border-border bg-muted motion-safe:animate-pulse"
+        />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+  return <StatusBadge tone={toneOf(row)} label={label} />;
 }
 
 interface DetailTriggerProps {
@@ -414,7 +438,7 @@ function InvalidCheckDigitHint() {
   );
 }
 
-function ResultTableRow({ row, handle, statusLabel }: RowViewProps) {
+function ResultTableRow({ row, handle, statusLabel, isChecking }: RowViewProps) {
   const t = useTranslations("remittance.check");
   const trigger = useRef<HTMLButtonElement>(null);
   return (
@@ -437,7 +461,7 @@ function ResultTableRow({ row, handle, statusLabel }: RowViewProps) {
         </span>
       </TableCell>
       <TableCell>
-        <StatusBadge tone={toneOf(row)} label={statusLabel} />
+        <RowStatus row={row} label={statusLabel} isChecking={isChecking} />
       </TableCell>
       <TableCell className="text-right">
         <DetailTrigger row={row} handle={handle} triggerRef={trigger} />
@@ -446,7 +470,7 @@ function ResultTableRow({ row, handle, statusLabel }: RowViewProps) {
   );
 }
 
-function ResultCard({ row, handle, statusLabel }: RowViewProps) {
+function ResultCard({ row, handle, statusLabel, isChecking }: RowViewProps) {
   const t = useTranslations("remittance.check");
   const trigger = useRef<HTMLButtonElement>(null);
   return (
@@ -459,7 +483,7 @@ function ResultCard({ row, handle, statusLabel }: RowViewProps) {
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium">{t("cardTitle", { ordinal: row.ordinal })}</span>
         <span className="flex items-center gap-1">
-          <StatusBadge tone={toneOf(row)} label={statusLabel} />
+          <RowStatus row={row} label={statusLabel} isChecking={isChecking} />
           <DetailTrigger row={row} handle={handle} triggerRef={trigger} />
         </span>
       </div>
