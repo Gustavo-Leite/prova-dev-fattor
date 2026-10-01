@@ -159,96 +159,98 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
           <p className="text-sm text-muted-foreground">
             {t("check.progress", { done: total - summary.pending, total })}
           </p>
-          <ResultsToolbar
-            summary={summary}
-            tones={tones}
-            query={query}
-            hasFilters={hasFilters}
-            toneLabel={toneLabel}
-            onToggleTone={toggleTone}
-            onQueryChange={changeQuery}
-            onClear={clearFilters}
-          />
+          <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-0 md:rounded-lg md:border md:bg-card md:has-[[data-slot=table-container]:focus-visible]:outline-2 md:has-[[data-slot=table-container]:focus-visible]:outline-offset-2 md:has-[[data-slot=table-container]:focus-visible]:outline-ring">
+            <ResultsToolbar
+              summary={summary}
+              tones={tones}
+              query={query}
+              hasFilters={hasFilters}
+              toneLabel={toneLabel}
+              onToggleTone={toggleTone}
+              onQueryChange={changeQuery}
+              onClear={clearFilters}
+            />
 
-          {visible.filteredCount === 0 ? (
-            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              {visible.hasInvalidQuery ? t("filters.digitsOnly") : t("filters.noMatches")}
-            </p>
-          ) : (
-            <>
-              <div className="hidden min-h-48 flex-1 md:flex md:flex-col">
-                <Table
-                  containerClassName="flex-1 overflow-auto rounded-lg border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  containerProps={{
-                    tabIndex: 0,
-                    role: "region",
-                    "aria-label": t("check.tableRegion"),
-                  }}
-                >
-                  <TableCaption className="sr-only">{t("check.tableCaption")}</TableCaption>
-                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_var(--border)]">
-                    <TableRow>
-                      <SortableHead
-                        column="ordinal"
-                        label={t("check.ordinalColumn")}
-                        sort={sort}
-                        onSort={changeSort}
-                        className="w-28"
-                      />
-                      <SortableHead
-                        column="key"
-                        label={t("check.keyColumn")}
-                        sort={sort}
-                        onSort={changeSort}
-                      />
-                      <SortableHead
-                        column="status"
-                        label={t("check.statusColumn")}
-                        sort={sort}
-                        onSort={changeSort}
-                      />
-                      <TableHead className="w-12">
-                        <span className="sr-only">{t("detail.column")}</span>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visible.pageRows.map((row) => (
-                      <ResultTableRow
-                        key={row.lineNumber}
-                        row={row}
-                        handle={detailHandle}
-                        statusLabel={rowLabel(row)}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+            {visible.filteredCount === 0 ? (
+              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground md:m-4">
+                {visible.hasInvalidQuery ? t("filters.digitsOnly") : t("filters.noMatches")}
+              </p>
+            ) : (
+              <>
+                <div className="hidden min-h-48 flex-1 md:flex md:flex-col">
+                  <Table
+                    containerClassName="flex-1 overflow-auto focus-visible:outline-none"
+                    containerProps={{
+                      tabIndex: 0,
+                      role: "region",
+                      "aria-label": t("check.tableRegion"),
+                    }}
+                  >
+                    <TableCaption className="sr-only">{t("check.tableCaption")}</TableCaption>
+                    <TableHeader className="sticky top-0 z-20 bg-card shadow-[inset_0_-1px_0_var(--border)]">
+                      <TableRow>
+                        <SortableHead
+                          column="ordinal"
+                          label={t("check.ordinalColumn")}
+                          sort={sort}
+                          onSort={changeSort}
+                          className="w-28"
+                        />
+                        <SortableHead
+                          column="key"
+                          label={t("check.keyColumn")}
+                          sort={sort}
+                          onSort={changeSort}
+                        />
+                        <SortableHead
+                          column="status"
+                          label={t("check.statusColumn")}
+                          sort={sort}
+                          onSort={changeSort}
+                        />
+                        <TableHead className="w-12">
+                          <span className="sr-only">{t("detail.column")}</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visible.pageRows.map((row) => (
+                        <ResultTableRow
+                          key={row.lineNumber}
+                          row={row}
+                          handle={detailHandle}
+                          statusLabel={rowLabel(row)}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-              <SortSelect sort={sort} onSort={changeSort} />
-              <ul className="flex flex-col gap-2 md:hidden">
-                {visible.pageRows.map((row) => (
-                  <ResultCard
-                    key={row.lineNumber}
-                    row={row}
-                    handle={detailHandle}
-                    statusLabel={rowLabel(row)}
-                  />
-                ))}
-              </ul>
-            </>
-          )}
+                <SortSelect sort={sort} onSort={changeSort} />
+                <ul className="flex flex-col gap-2 md:hidden">
+                  {visible.pageRows.map((row) => (
+                    <ResultCard
+                      key={row.lineNumber}
+                      row={row}
+                      handle={detailHandle}
+                      statusLabel={rowLabel(row)}
+                    />
+                  ))}
+                </ul>
+              </>
+            )}
 
-          <ResultsPagination
-            pageIndex={visible.pageIndex}
-            pageCount={visible.pageCount}
-            pageSize={pageSize}
-            from={visible.from}
-            to={visible.to}
-            count={visible.filteredCount}
-            onPageChange={setPageIndex}
-            onPageSizeChange={changePageSize}
-          />
+            <ResultsPagination
+              pageIndex={visible.pageIndex}
+              pageCount={visible.pageCount}
+              pageSize={pageSize}
+              from={visible.from}
+              to={visible.to}
+              count={visible.filteredCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={changePageSize}
+            />
+          </div>
           <ReceivableDetailDialog
             handle={detailHandle}
             rows={rows}

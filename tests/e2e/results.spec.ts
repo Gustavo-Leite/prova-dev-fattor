@@ -274,6 +274,12 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     const headerBox = await region.getByRole("columnheader").first().boundingBox();
     expect(Math.abs((headerBox?.y ?? 0) - (regionBox?.y ?? 0))).toBeLessThan(2);
     await expect(pagination(page)).toBeInViewport();
+
+    await statusFilter(page, /^Denegada: 3$/).focus();
+    await page.keyboard.press("Tab");
+    await expect(region).toBeFocused();
+    const card = region.locator("xpath=ancestor::div[contains(@class, 'md:bg-card')][1]");
+    await expect(card).toHaveCSS("outline-style", "solid");
   });
 
   test("shrinks the file picker once the file is ready", async ({ page }) => {

@@ -38,7 +38,7 @@ export function ResultsPagination({
   return (
     <nav
       aria-label={t("label")}
-      className="flex flex-wrap items-center justify-between gap-3 text-sm"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-sm md:mt-auto md:rounded-t-none md:rounded-b-[calc(var(--radius)-1px)] md:border-x-0 md:border-b-0 md:bg-muted/40 md:px-4"
     >
       <p className="text-muted-foreground tabular-nums">
         {count > 0 ? t("range", { from, to, count }) : ""}
@@ -49,7 +49,7 @@ export function ResultsPagination({
           <select
             id={pageSizeId}
             value={pageSize}
-            className="h-8 rounded-lg border border-input bg-background px-2 tabular-nums outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="h-8 rounded-lg border border-input bg-card px-2 tabular-nums outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             onChange={(event) => {
               onPageSizeChange(toPageSize(event.target.value));
             }}
@@ -65,6 +65,7 @@ export function ResultsPagination({
           <Button
             variant="outline"
             size="sm"
+            className="bg-card focus-visible:ring-offset-card dark:bg-card"
             disabled={pageIndex === 0}
             focusableWhenDisabled
             onClick={() => {
@@ -79,6 +80,7 @@ export function ResultsPagination({
           <Button
             variant="outline"
             size="sm"
+            className="bg-card focus-visible:ring-offset-card dark:bg-card"
             disabled={pageIndex >= pageCount - 1}
             focusableWhenDisabled
             onClick={() => {
