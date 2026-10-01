@@ -116,6 +116,19 @@ describe("describeRemittanceIssue", () => {
       "Linha 12: o trailer informa 13 registros, mas o arquivo tem 12.",
     );
   });
+
+  it.each([
+    [0, "Linha 12: o trailer informa 0 registros, mas o arquivo tem 12."],
+    [1, "Linha 12: o trailer informa 1 registro, mas o arquivo tem 12."],
+  ])("uses the right plural when the trailer states %i records", (declared, expected) => {
+    const issue: Cnab444Issue = {
+      code: "RECORD_COUNT_MISMATCH",
+      lineNumber: 12,
+      declared,
+      actual: 12,
+    };
+    expect(render("pt-BR", describeRemittanceIssue(issue))).toBe(expected);
+  });
 });
 
 describe("describeSubmitError", () => {

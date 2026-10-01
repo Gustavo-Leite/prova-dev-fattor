@@ -122,7 +122,7 @@
       "UNEXPECTED_BLANK_LINE": "Linha {lineNumber}: está em branco; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
       "MISSING_DETAIL_RECORDS": "O arquivo não tem registros de detalhe (tipo 1).",
       "INVALID_RECORD_COUNT": "Linha {lineNumber}: o trailer não informa um total de registros válido.",
-      "RECORD_COUNT_MISMATCH": "Linha {lineNumber}: o trailer informa {declared, plural, one {# registro} other {# registros}}, mas o arquivo tem {actual}.",
+      "RECORD_COUNT_MISMATCH": "Linha {lineNumber}: o trailer informa {declared, plural, =0 {0 registros} one {# registro} other {# registros}}, mas o arquivo tem {actual}.",
       "INVALID_ACCESS_KEY_FORMAT": "Linha {lineNumber}: a chave de acesso da NF-e (colunas 401–444) não tem um formato válido."
     }
   },
