@@ -231,6 +231,7 @@
       "content": "Use the email and password allowed for this app. In the demo, they are the public credentials from the API documentation."
     },
     "demoCredentialsLink": "See the demo credentials in the API documentation",
+    "opensInNewTab": " (opens in a new tab)",
     "email": {
       "label": "Email",
       "errors": {

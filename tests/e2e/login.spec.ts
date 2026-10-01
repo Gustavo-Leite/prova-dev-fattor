@@ -99,9 +99,13 @@ test.describe("sign-in page (pt-BR)", () => {
 
     await expect(page).toHaveTitle(copy.title);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
-    await expect(
-      page.getByRole("link", { name: "Ver as credenciais de demonstração na documentação da API" }),
-    ).toHaveAttribute("href", apiDocumentationUrl);
+    const documentationLink = page.getByRole("link", {
+      name: "Ver as credenciais de demonstração na documentação da API (abre em nova aba)",
+      exact: true,
+    });
+    await expect(documentationLink).toHaveAttribute("href", apiDocumentationUrl);
+    await expect(documentationLink).toHaveAttribute("target", "_blank");
+    await expect(documentationLink).toHaveAttribute("rel", "noopener noreferrer");
     await expect(emailField(page)).toHaveAttribute("autocomplete", "email");
     await expect(emailField(page)).toHaveAttribute("maxlength", "254");
     await expect(passwordField(page)).toHaveAttribute("autocomplete", "current-password");

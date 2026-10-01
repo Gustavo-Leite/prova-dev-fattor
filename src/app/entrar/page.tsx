@@ -84,9 +84,24 @@ export default async function SignIn() {
             <p className="text-sm">
               <a
                 href={apiDocumentationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="rounded-sm font-medium text-primary underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
               >
                 {t("demoCredentialsLink")}
+                <span className="sr-only">{t("opensInNewTab")}</span>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="ml-1 inline size-3.5 align-[-0.125em]"
+                >
+                  <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                </svg>
               </a>
             </p>
           </div>
