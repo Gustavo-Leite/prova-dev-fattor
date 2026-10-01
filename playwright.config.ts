@@ -37,7 +37,11 @@ export default defineConfig({
   ],
   webServer: {
     command: `bun run build && bun run start --port ${port}`,
-    env: { FATTOR_API_BASE_URL: "https://127.0.0.1:9/public/prova-dev" },
+    env: {
+      FATTOR_API_BASE_URL: "https://127.0.0.1:9/public/prova-dev",
+      SIGN_IN_EMAIL: "e2e@example.test",
+      SIGN_IN_PASSWORD: "e2e-password",
+    },
     url: baseURL,
     reuseExistingServer: false,
     timeout: 180_000,

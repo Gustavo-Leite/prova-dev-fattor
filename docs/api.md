@@ -21,10 +21,16 @@ resultados aos poucos.
 
 ## 2. API externa (Fattor)
 
-Documentada em OpenAPI (`/public/prova-dev/openapi`). Só a URL base vem do ambiente
+Documentada em OpenAPI (`/public/prova-dev/openapi`). A URL base vem do ambiente
 (`FATTOR_API_BASE_URL`; ver `.env.example`). O login é feito por cada usuário na página `/entrar`:
 o servidor chama `POST /login` e guarda o token num cookie `session` HttpOnly, que o JavaScript
-da página não lê. Não há credenciais no servidor.
+da página não lê. O servidor não guarda token da API.
+
+A API de demonstração responde `200` com um token válido para **qualquer** e-mail e senha. Por
+isso o servidor só libera a credencial configurada em `SIGN_IN_EMAIL` e `SIGN_IN_PASSWORD`
+(obrigatórias; o `.env.example` traz as credenciais públicas de demonstração do Swagger). O e-mail
+é comparado sem diferenciar maiúsculas; a senha, exatamente e em tempo constante. Qualquer outra
+credencial é recusada sem chamar a API.
 
 | Chamada               | Uso                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------ |
@@ -47,7 +53,8 @@ Mapeamento da situação para o domínio (código em inglês):
   (ou na metade da validade, se for curta) e dura no máximo 24 h.
 - **401 numa consulta:** a sessão foi recusada; a verificação do arquivo inteiro é interrompida,
   sem nova tentativa nem novo login. O usuário entra de novo na página `/entrar`.
-- **Login recusado (400, 401 ou 403):** a página `/entrar` informa e-mail ou senha incorretos.
+- **Login recusado (credencial diferente da configurada, ou API respondendo 400, 401 ou 403):** a
+  página `/entrar` informa e-mail ou senha incorretos.
 - **Tempo limite:** 5 s por tentativa de consulta, contando o corpo da resposta; o login tem no
   máximo 10 s.
 - **Novas tentativas:** até 2 por consulta, com espera exponencial e variação aleatória, em falha

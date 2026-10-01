@@ -227,7 +227,7 @@
     },
     "help": {
       "label": "Sobre as credenciais",
-      "content": "Use o e-mail e a senha de acesso à API da Fattor."
+      "content": "Use o e-mail e a senha liberados para este app. Na demonstração, são as credenciais públicas da documentação da API."
     },
     "demoCredentialsLink": "Ver as credenciais de demonstração na documentação da API",
     "email": {

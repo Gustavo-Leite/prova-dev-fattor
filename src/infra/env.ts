@@ -2,6 +2,9 @@ import "server-only";
 
 import { z } from "zod";
 
+export const maxSignInEmailLength = 254;
+export const maxSignInPasswordLength = 256;
+
 const serverEnvSchema = z
   .object({
     FATTOR_API_BASE_URL: z
@@ -17,10 +20,20 @@ const serverEnvSchema = z
         const url = new URL(value);
         return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
       }),
+    SIGN_IN_EMAIL: z
+      .string()
+      .trim()
+      .pipe(z.email().max(maxSignInEmailLength))
+      .transform((value) => value.toLowerCase()),
+    SIGN_IN_PASSWORD: z.string().min(1).max(maxSignInPasswordLength),
   })
   .transform((env) => ({
     fattorApi: {
       baseUrl: env.FATTOR_API_BASE_URL,
+    },
+    signIn: {
+      email: env.SIGN_IN_EMAIL,
+      password: env.SIGN_IN_PASSWORD,
     },
   }));
 

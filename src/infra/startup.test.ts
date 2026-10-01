@@ -4,6 +4,8 @@ import type * as EnvModule from "@/infra/env";
 
 const validEnv = {
   FATTOR_API_BASE_URL: "https://api.example.com/public/prova-dev",
+  SIGN_IN_EMAIL: "operator@example.test",
+  SIGN_IN_PASSWORD: "test-password",
 };
 
 describe("assertServerEnvOnStartup", () => {

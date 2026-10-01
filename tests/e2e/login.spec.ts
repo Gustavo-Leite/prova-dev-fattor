@@ -12,13 +12,20 @@ const copy = {
   invalidEmail: "Informe um e-mail válido, como nome@empresa.com.br.",
   missingEmail: "Informe o e-mail.",
   missingPassword: "Informe a senha.",
+  rejected: "E-mail ou senha incorretos.",
   unavailable: "Não foi possível entrar agora. Tente de novo em instantes.",
   helpLabel: "Sobre as credenciais",
-  helpContent: "Use o e-mail e a senha de acesso à API da Fattor.",
+  helpContent:
+    "Use o e-mail e a senha liberados para este app. Na demonstração, são as credenciais públicas da documentação da API.",
   tagline: "Consulte a situação das notas da sua remessa CNAB 444.",
 } as const;
 
 const signInPath = "/entrar";
+
+const configuredCredentials = {
+  email: "e2e@example.test",
+  password: "e2e-password",
+} as const;
 
 function emailField(page: Page) {
   return page.getByLabel("E-mail", { exact: true });
@@ -38,6 +45,10 @@ function submitButton(page: Page) {
 
 function unavailableAlert(page: Page) {
   return page.getByRole("alert").filter({ hasText: copy.unavailable });
+}
+
+function rejectedAlert(page: Page) {
+  return page.getByRole("alert").filter({ hasText: copy.rejected });
 }
 
 function helpTrigger(page: Page) {
@@ -265,8 +276,8 @@ test.describe("sign-in page (pt-BR)", () => {
 
   test("hides the password again when the form is submitted", async ({ page }) => {
     await openHydrated(page);
-    await emailField(page).fill("user@example.com");
-    await passwordField(page).fill("any-password");
+    await emailField(page).fill(configuredCredentials.email);
+    await passwordField(page).fill(configuredCredentials.password);
     await passwordToggle(page).click();
     await expect(passwordField(page)).toHaveAttribute("type", "text");
 
@@ -280,12 +291,24 @@ test.describe("sign-in page (pt-BR)", () => {
   test("keeps the email and clears the password when the API is unreachable", async ({ page }) => {
     await openHydrated(page);
 
-    await submit(page, "user@example.com", "any-password");
+    await submit(page, configuredCredentials.email, configuredCredentials.password);
 
     await expect(unavailableAlert(page)).toBeVisible();
-    await expect(emailField(page)).toHaveValue("user@example.com");
+    await expect(emailField(page)).toHaveValue(configuredCredentials.email);
     await expect(passwordField(page)).toHaveValue("");
     await expect(submitButton(page)).not.toHaveAttribute("aria-disabled", "true");
+    await expect(page).toHaveURL(/\/entrar$/);
+  });
+
+  test("rejects a credential other than the configured one", async ({ page }) => {
+    await openHydrated(page);
+
+    await submit(page, "user@example.com", "any-password");
+
+    await expect(rejectedAlert(page)).toBeVisible();
+    await expect(unavailableAlert(page)).toHaveCount(0);
+    await expect(emailField(page)).toHaveValue("user@example.com");
+    await expect(passwordField(page)).toHaveValue("");
     await expect(page).toHaveURL(/\/entrar$/);
   });
 
@@ -309,6 +332,11 @@ test.describe("sign-in page (pt-BR)", () => {
       await expectNoAxeViolations(page);
 
       await submit(page, "user@example.com", "any-password");
+      await expect(rejectedAlert(page)).toBeVisible();
+
+      await expectNoAxeViolations(page);
+
+      await submit(page, configuredCredentials.email, configuredCredentials.password);
       await expect(unavailableAlert(page)).toBeVisible();
 
       await expectNoAxeViolations(page);
@@ -344,10 +372,10 @@ test.describe("sign-in page without JavaScript", () => {
     await page.goto(signInPath);
     await expect(passwordToggle(page)).toHaveCount(0);
 
-    await submit(page, "user@example.com", "any-password");
+    await submit(page, configuredCredentials.email, configuredCredentials.password);
 
     await expect(unavailableAlert(page)).toBeVisible();
-    await expect(emailField(page)).toHaveValue("user@example.com");
+    await expect(emailField(page)).toHaveValue(configuredCredentials.email);
     await expect(passwordField(page)).toHaveValue("");
     await expect(passwordToggle(page)).toHaveCount(0);
   });

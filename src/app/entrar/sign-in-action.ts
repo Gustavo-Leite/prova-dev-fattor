@@ -7,13 +7,18 @@ import { submitSignIn } from "@/app/entrar/submit-sign-in";
 import type { SignInFormState } from "@/features/session/sign-in-fields";
 import { getServerEnv } from "@/infra/env";
 import { createFattorAuthenticator } from "@/infra/fattor/fattor-authenticator";
+import { createCredentialGatedAuthenticator } from "@/infra/session/credential-gated-authenticator";
 import { sessionCookieName, sessionCookieOptions } from "@/lib/session-cookie";
 
 export async function signIn(
   _previousState: SignInFormState,
   formData: FormData,
 ): Promise<SignInFormState> {
-  const authenticator = createFattorAuthenticator({ baseUrl: getServerEnv().fattorApi.baseUrl });
+  const env = getServerEnv();
+  const authenticator = createCredentialGatedAuthenticator(
+    createFattorAuthenticator({ baseUrl: env.fattorApi.baseUrl }),
+    env.signIn,
+  );
   const outcome = await submitSignIn({ authenticator }, formData);
   if (outcome.kind === "form") {
     return outcome.state;

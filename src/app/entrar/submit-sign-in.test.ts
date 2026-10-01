@@ -6,6 +6,8 @@ import type {
   SignInCredentials,
   SignInResult,
 } from "@/application/session/authenticator";
+import { maxEmailLength, maxPasswordLength } from "@/features/session/sign-in-fields";
+import { maxSignInEmailLength, maxSignInPasswordLength } from "@/infra/env";
 import { maxTokenLength } from "@/infra/fattor/fattor-api.contract";
 import { maxSessionTokenLength } from "@/lib/session-cookie";
 
@@ -100,5 +102,12 @@ describe("submitSignIn", () => {
 describe("session token limits", () => {
   it("lets the session cookie hold any token the login accepts", () => {
     expect(maxSessionTokenLength).toBe(maxTokenLength);
+  });
+});
+
+describe("sign-in credential limits", () => {
+  it("lets the configured credential fit in the sign-in form", () => {
+    expect(maxSignInEmailLength).toBe(maxEmailLength);
+    expect(maxSignInPasswordLength).toBe(maxPasswordLength);
   });
 });

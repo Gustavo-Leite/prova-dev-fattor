@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { InvalidServerEnvError, parseServerEnv } from "@/infra/env";
+import {
+  InvalidServerEnvError,
+  maxSignInPasswordLength,
+  maxSignInEmailLength,
+  parseServerEnv,
+} from "@/infra/env";
 
 const validSource = {
   FATTOR_API_BASE_URL: "https://api.example.com/public/prova-dev",
+  SIGN_IN_EMAIL: "operator@example.test",
+  SIGN_IN_PASSWORD: "test-password",
 };
 
 describe("parseServerEnv", () => {
@@ -12,7 +19,78 @@ describe("parseServerEnv", () => {
       fattorApi: {
         baseUrl: "https://api.example.com/public/prova-dev",
       },
+      signIn: {
+        email: "operator@example.test",
+        password: "test-password",
+      },
     });
+  });
+
+  it("trims and lowercases the sign-in email", () => {
+    const env = parseServerEnv({ ...validSource, SIGN_IN_EMAIL: "  Operator@Example.TEST " });
+
+    expect(env.signIn.email).toBe("operator@example.test");
+  });
+
+  it("keeps the sign-in password exactly as given", () => {
+    const env = parseServerEnv({ ...validSource, SIGN_IN_PASSWORD: " Mixed Case " });
+
+    expect(env.signIn.password).toBe(" Mixed Case ");
+  });
+
+  it.each(["not-an-email", "user@", "@example.test", ""])(
+    "rejects the sign-in email %j",
+    (email) => {
+      expect(() => parseServerEnv({ ...validSource, SIGN_IN_EMAIL: email })).toThrow(
+        "SIGN_IN_EMAIL",
+      );
+    },
+  );
+
+  it("rejects an empty sign-in password", () => {
+    expect(() => parseServerEnv({ ...validSource, SIGN_IN_PASSWORD: "" })).toThrow(
+      "SIGN_IN_PASSWORD",
+    );
+  });
+
+  it("never includes the sign-in password in the error message", () => {
+    const source = { ...validSource, SIGN_IN_EMAIL: "invalid" };
+
+    let thrown: unknown;
+    try {
+      parseServerEnv(source);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(InvalidServerEnvError);
+    expect(String(thrown)).not.toContain(validSource.SIGN_IN_PASSWORD);
+  });
+
+  it("accepts a sign-in email at the limit and rejects a longer one", () => {
+    const emailOfLength = (length: number) => {
+      const fixed = `${"a".repeat(64)}@${"b".repeat(63)}.${"c".repeat(63)}.`;
+      return `${fixed}${"d".repeat(length - fixed.length - ".test".length)}.test`;
+    };
+    const atLimit = emailOfLength(maxSignInEmailLength);
+    const overLimit = emailOfLength(maxSignInEmailLength + 1);
+
+    expect(atLimit).toHaveLength(maxSignInEmailLength);
+    expect(parseServerEnv({ ...validSource, SIGN_IN_EMAIL: atLimit }).signIn.email).toBe(atLimit);
+    expect(() => parseServerEnv({ ...validSource, SIGN_IN_EMAIL: overLimit })).toThrow(
+      "SIGN_IN_EMAIL",
+    );
+  });
+
+  it("accepts a sign-in password at the limit and rejects a longer one", () => {
+    const atLimit = "p".repeat(maxSignInPasswordLength);
+
+    expect(parseServerEnv({ ...validSource, SIGN_IN_PASSWORD: atLimit }).signIn.password).toBe(
+      atLimit,
+    );
+    expect(() => parseServerEnv({ ...validSource, SIGN_IN_PASSWORD: `${atLimit}p` })).toThrow(
+      "SIGN_IN_PASSWORD",
+    );
   });
 
   it("removes trailing slashes from the base URL", () => {
