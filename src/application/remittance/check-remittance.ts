@@ -3,9 +3,9 @@ import type {
   LookupFailureReason,
 } from "@/application/remittance/invoice-status-gateway";
 import { InvoiceStatusLookupError } from "@/application/remittance/invoice-status-gateway";
-import { decodeRemittance } from "@/domain/cnab/decode-remittance";
-import type { Cnab444Issue, Receivable } from "@/domain/cnab/parse-cnab-444";
-import { parseCnab444 } from "@/domain/cnab/parse-cnab-444";
+import type { Receivable } from "@/domain/cnab/parse-cnab-444";
+import type { RemittanceRejection } from "@/domain/cnab/read-remittance";
+import { readRemittance } from "@/domain/cnab/read-remittance";
 import type { InvoiceStatus } from "@/domain/invoice/invoice-status";
 
 export interface RemittanceCheckPolicy {
@@ -33,13 +33,8 @@ export type RemittanceCheckEvent =
   | { readonly type: "completed" }
   | { readonly type: "failed"; readonly reason: "UPSTREAM_REJECTED_CREDENTIALS" };
 
-export type RemittanceRejection =
-  | {
-      readonly code: "INVALID_FILE";
-      readonly errors: readonly Cnab444Issue[];
-      readonly truncated: boolean;
-    }
-  | { readonly code: "TOO_MANY_RECEIVABLES"; readonly max: number; readonly actual: number };
+export type RemittanceStreamEvent =
+  { readonly type: "started"; readonly total: number } | RemittanceCheckEvent;
 
 export type RemittanceCheck =
   | { readonly ok: false; readonly rejection: RemittanceRejection }
@@ -206,24 +201,11 @@ export function checkRemittance(
 ): RemittanceCheck {
   const policy = options.policy ?? defaultRemittanceCheckPolicy;
   assertValidPolicy(policy);
-  const parsed = parseCnab444(decodeRemittance(bytes));
-  if (!parsed.ok) {
-    return {
-      ok: false,
-      rejection: { code: "INVALID_FILE", errors: parsed.errors, truncated: parsed.truncated },
-    };
+  const reading = readRemittance(bytes, { maxReceivables: policy.maxReceivables });
+  if (!reading.ok) {
+    return reading;
   }
-  const { receivables } = parsed;
-  if (receivables.length > policy.maxReceivables) {
-    return {
-      ok: false,
-      rejection: {
-        code: "TOO_MANY_RECEIVABLES",
-        max: policy.maxReceivables,
-        actual: receivables.length,
-      },
-    };
-  }
+  const { receivables } = reading;
   return {
     ok: true,
     total: receivables.length,

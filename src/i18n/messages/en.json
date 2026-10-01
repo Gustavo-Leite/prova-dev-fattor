@@ -4,7 +4,219 @@
     "description": "Upload a CNAB 444 remittance file and check the status of each invoice."
   },
   "home": {
-    "title": "CNAB 444 Status Checker"
+    "title": "CNAB 444 Status Checker",
+    "description": "Upload the remittance file to validate its layout and check the status of each invoice."
+  },
+  "remittance": {
+    "upload": {
+      "heading": "Remittance file",
+      "instructions": "Drag the remittance file here or click to attach it",
+      "attachAnother": "Attach another file",
+      "hint": "CNAB 444 (.rem or .txt), up to {maxKilobytes} KB and {maxReceivables} receivables",
+      "reading": "Reading {fileName}…",
+      "ready": "{count, plural, one {# receivable} other {# receivables}} read from {fileName}.",
+      "invalidCheckDigits": "{count, plural, one {# key has} other {# keys have}} an invalid check digit; they will be checked anyway.",
+      "rejectedFile": "File: {fileName}",
+      "truncated": "There are more problems besides these."
+    },
+    "check": {
+      "heading": "Invoice statuses",
+      "checking": "Checking…",
+      "again": "Check again",
+      "retry": "Try again",
+      "started": "Checking {total, plural, one {# receivable} other {# receivables}} with the Fattor API.",
+      "progress": "{done} of {total} checked",
+      "completed": "Check finished: {total, plural, one {# receivable checked} other {# receivables checked}}{failed, plural, =0 {.} other {, # failed.}}",
+      "credentialsRejected": "The Fattor API refused the server credentials, so the check was stopped. Try again later.",
+      "interrupted": "The check stopped before the end. Receivables without a status can be checked again.",
+      "summaryItem": "{label}: {count}",
+      "tableCaption": "Status of each receivable in the file, in line order",
+      "tableRegion": "Receivables list",
+      "ordinalColumn": "No.",
+      "keyColumn": "NF-e access key",
+      "statusColumn": "Status",
+      "cardTitle": "Receivable {ordinal}",
+      "fileLine": "file line {lineNumber}",
+      "invalidCheckDigit": "Invalid check digit",
+      "invalidCheckDigitHint": "This key's check digit doesn't match; its status is still checked."
+    },
+    "detail": {
+      "column": "Details",
+      "openLabel": "Details of receivable {ordinal}",
+      "title": "Receivable {ordinal}",
+      "fileLine": "Line {lineNumber} of the file",
+      "unavailable": "Receivable unavailable",
+      "close": "Close",
+      "keyHeading": "NF-e access key",
+      "partsHeading": "Parts of the key",
+      "xrayHeading": "Line x-ray",
+      "xrayCaption": "Line {lineNumber} of the file, with the 444 positions of the record."
+    },
+    "filters": {
+      "statusLabel": "Filter by status",
+      "searchLabel": "Search by access key",
+      "searchHint": "Type any part of the key; spaces, dots and dashes are ignored.",
+      "clear": "Clear filters",
+      "noMatches": "No receivable matches the filters.",
+      "invalidCharacters": "Access keys only have digits and letters.",
+      "matches": "{count, plural, =0 {No receivables found.} one {# receivable found.} other {# receivables found.}}"
+    },
+    "export": {
+      "button": "{count, plural, one {Export # receivable (CSV)} other {Export # receivables (CSV)}}",
+      "fileName": "remittance-status.csv",
+      "lineColumn": "File line"
+    },
+    "sorting": {
+      "sortBy": "Sort by",
+      "options": {
+        "ordinal-asc": "No. (file order)",
+        "ordinal-desc": "No. (last to first)",
+        "key-asc": "Key (ascending)",
+        "key-desc": "Key (descending)",
+        "status-asc": "Status (authorized first)",
+        "status-desc": "Status (authorized last)"
+      }
+    },
+    "pagination": {
+      "label": "Result pages",
+      "range": "{from}–{to} of {count}",
+      "pageSize": "Receivables per page",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {pageCount}"
+    },
+    "statuses": {
+      "authorized": "Authorized",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected",
+      "denied": "Denied",
+      "not_found": "Not found",
+      "failed": "Failed",
+      "pending": "Checking…",
+      "notChecked": "Not checked"
+    },
+    "failureReasons": {
+      "UPSTREAM_TIMEOUT": "Failed: no answer in time",
+      "UPSTREAM_UNAVAILABLE": "Failed: API unavailable",
+      "UPSTREAM_INVALID_RESPONSE": "Failed: invalid API response"
+    },
+    "requestErrors": {
+      "NETWORK_ERROR": "The server could not be reached. Check your connection and try again.",
+      "UNEXPECTED_RESPONSE": "The server gave an unexpected answer (code {status}).",
+      "INVALID_REQUEST": "The server did not accept the upload.",
+      "CROSS_SITE_REQUEST": "The upload was blocked because it came from another origin.",
+      "LENGTH_REQUIRED": "The browser did not send the file size."
+    },
+    "rejections": {
+      "INVALID_FILE": "The file does not follow the CNAB 444 layout.",
+      "TOO_MANY_RECEIVABLES": "The file has {actual} receivables; the limit is {max} per upload.",
+      "FILE_TOO_LARGE": "The file is larger than {maxKilobytes} KB.",
+      "MULTIPLE_FILES": "Upload one file at a time.",
+      "UNREADABLE_FILE": "The file could not be read. It may be a folder or it may have been moved; attach it again."
+    },
+    "issues": {
+      "EMPTY_FILE": "The file is empty.",
+      "INVALID_CHARACTERS": "Line {lineNumber}: contains control characters.",
+      "INVALID_LINE_LENGTH": "Line {lineNumber}: {actual, plural, =0 {is empty} one {has # character} other {has # characters}}; {expected} are expected.",
+      "UNEXPECTED_RECORD_TYPE": "Line {lineNumber}: record of type “{actual}”; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
+      "UNEXPECTED_BLANK_LINE": "Line {lineNumber}: is blank; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
+      "MISSING_DETAIL_RECORDS": "The file has no detail records (type 1).",
+      "INVALID_RECORD_COUNT": "Line {lineNumber}: the trailer does not state a valid record count.",
+      "RECORD_COUNT_MISMATCH": "Line {lineNumber}: the trailer states {declared, plural, one {# record} other {# records}}, but the file has {actual}.",
+      "INVALID_ACCESS_KEY_FORMAT": "Line {lineNumber}: the NF-e access key (columns 401–444) is not in a valid format."
+    }
+  },
+  "cnab": {
+    "position": "position {start}",
+    "positions": "positions {start}–{end}",
+    "fields": {
+      "stateCode": "Issuer state",
+      "yearMonth": "Year and month of issue",
+      "issuerId": "Issuer CNPJ",
+      "model": "Model",
+      "series": "Series",
+      "number": "Invoice number",
+      "emissionType": "Issue type",
+      "randomCode": "Numeric code",
+      "checkDigit": "Check digit"
+    },
+    "state": "{code} ({abbreviation})",
+    "checkDigitValid": "{digit} (valid)",
+    "checkDigitInvalid": "{digit} (invalid; expected {expected})",
+    "segments": {
+      "recordType": "Record type",
+      "bankData": "Bank data, shown without interpretation",
+      "accessKey": "NF-e access key"
+    },
+    "layout": {
+      "metadataTitle": "CNAB 444 layout",
+      "title": "CNAB 444 layout",
+      "intro": "CNAB 444 is the remittance file used to assign receivables to funds, securitization companies and factoring firms. Each line is a record of {length} columns: the CNAB 400 collection layout plus the access key of the NF-e (Brazilian electronic invoice) backing each receivable, at {keyPositions}.",
+      "docLink": "Full layout documentation in the repository",
+      "records": {
+        "title": "Record types",
+        "description": "Column 1 of each line tells the record type.",
+        "recordType": "Type {code}, at {position}",
+        "header": {
+          "name": "Header",
+          "description": "First line: identifies the remittance, the company and the recording date."
+        },
+        "detail": {
+          "name": "Detail",
+          "description": "One line per receivable: control number, due date, amount, payer and NF-e key.",
+          "accessKey": "NF-e access key at {positions}."
+        },
+        "trailer": {
+          "name": "Trailer",
+          "description": "Last line: closes the file.",
+          "recordCount": "Line count at {positions}; in the sample, left-aligned at {samplePositions}, followed by blanks."
+        }
+      },
+      "xray": {
+        "title": "One sample detail, column by column",
+        "description": "First detail of the challenge file, with a fictitious payer. Columns between fields are not highlighted.",
+        "label": "Sample detail line with the fields highlighted",
+        "caption": "Solid color and underline: stable columns. Outline: positions observed in the sample."
+      },
+      "fields": {
+        "recordType": "Record type",
+        "titleNumber": "Receivable number",
+        "titleNumberDigit": "Receivable number digit",
+        "controlNumber": "Participant control number",
+        "titleKind": "Receivable kind",
+        "dueDate": "Due date",
+        "amount": "Amount",
+        "payerDocument": "Payer CPF/CNPJ",
+        "payerName": "Payer name",
+        "payerCity": "Payer city",
+        "payerPostalCode": "Payer postal code",
+        "payerState": "Payer state",
+        "invoiceAccessKey": "NF-e access key"
+      },
+      "table": {
+        "title": "Detail fields",
+        "observedNote": "Only the record type and the NF-e key have guaranteed positions, and only they are used for extraction. The other positions were observed in the sample and are not guaranteed: in detail 2, for instance, every field from the control number on is one column to the right.",
+        "caption": "Fields of the first sample detail",
+        "scrollLabel": "Detail fields table, horizontally scrollable",
+        "columns": {
+          "field": "Field",
+          "positions": "Positions",
+          "raw": "Value in the file",
+          "decoded": "Decoded value",
+          "reliability": "Reliability"
+        },
+        "reliability": {
+          "stable": "Stable",
+          "observed": "Observed in the sample"
+        },
+        "detailRecord": "Detail",
+        "notDecoded": "—"
+      },
+      "accessKey": {
+        "title": "Access key anatomy",
+        "description": "The NF-e key has 44 digits and encodes the invoice behind the receivable. It identifies each item in the status check."
+      }
+    }
   },
   "notFound": {
     "title": "Page not found",
@@ -13,5 +225,30 @@
   },
   "footer": {
     "disclaimer": "Technical assessment project — not an official Fattor Crédito product."
+  },
+  "appBar": {
+    "name": "CNAB 444 Status",
+    "nav": {
+      "label": "Main",
+      "check": "Check",
+      "layout": "CNAB 444 layout"
+    },
+    "theme": {
+      "label": "Theme",
+      "system": "Follow the system theme",
+      "light": "Light theme",
+      "dark": "Dark theme"
+    },
+    "language": {
+      "label": "Language",
+      "shortNames": {
+        "pt-BR": "PT",
+        "en": "EN"
+      },
+      "names": {
+        "pt-BR": "Português",
+        "en": "English"
+      }
+    }
   }
 }

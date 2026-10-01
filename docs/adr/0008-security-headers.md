@@ -1,9 +1,9 @@
 # 0008. Cabeçalhos de segurança HTTP
 
-- Status: Aceito
+- Status: Substituído parcialmente por 0016
 - Data: 2026-09-30
 - Substitui: —
-- Substituído por: —
+- Substituído por: 0016 (parcialmente: a parte de CSP)
 
 ## Contexto
 

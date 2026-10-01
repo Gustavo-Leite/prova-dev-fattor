@@ -55,6 +55,14 @@ describe("parseCnab444 with the sample file", () => {
     );
   });
 
+  it("returns every record line, indexed by line number minus one", () => {
+    assert(result.ok);
+    expect(result.lines).toHaveLength(12);
+    for (const receivable of result.receivables) {
+      expect(result.lines[receivable.lineNumber - 1]?.slice(400)).toBe(receivable.invoiceAccessKey);
+    }
+  });
+
   it("reads the key from columns 401–444 even on the shifted detail record", () => {
     assert(result.ok);
     expect(result.receivables[1]?.invoiceAccessKey).toBe(keyWithInvalidCheckDigit);
@@ -84,6 +92,7 @@ describe("parseCnab444 input normalization", () => {
     expect(parseCnab444(content)).toEqual({
       ok: true,
       receivables: [{ lineNumber: 2, invoiceAccessKey: validKey, hasValidCheckDigit: true }],
+      lines: validLines,
     });
   });
 
@@ -280,11 +289,13 @@ describe("parseCnab444 invoice access keys", () => {
   });
 
   it("accepts a key issued by an alphanumeric CNPJ", () => {
-    expect(parseCnab444(toFile(remittance([detail(alphanumericIssuerKey)])))).toEqual({
+    const lines = remittance([detail(alphanumericIssuerKey)]);
+    expect(parseCnab444(toFile(lines))).toEqual({
       ok: true,
       receivables: [
         { lineNumber: 2, invoiceAccessKey: alphanumericIssuerKey, hasValidCheckDigit: true },
       ],
+      lines,
     });
   });
 

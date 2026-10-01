@@ -4,7 +4,219 @@
     "description": "Envie um arquivo de remessa CNAB 444 e consulte a situação de cada nota fiscal."
   },
   "home": {
-    "title": "Consulta de Status CNAB 444"
+    "title": "Consulta de Status CNAB 444",
+    "description": "Envie o arquivo de remessa para validar o layout e consultar a situação de cada nota fiscal."
+  },
+  "remittance": {
+    "upload": {
+      "heading": "Arquivo de remessa",
+      "instructions": "Arraste o arquivo de remessa aqui ou clique para anexar",
+      "attachAnother": "Anexar outro arquivo",
+      "hint": "CNAB 444 (.rem ou .txt), até {maxKilobytes} KB e {maxReceivables} títulos",
+      "reading": "Lendo {fileName}…",
+      "ready": "{count, plural, one {# título lido} other {# títulos lidos}} em {fileName}.",
+      "invalidCheckDigits": "{count, plural, one {# chave tem} other {# chaves têm}} dígito verificador inválido; a consulta é feita mesmo assim.",
+      "rejectedFile": "Arquivo: {fileName}",
+      "truncated": "Há mais problemas além destes."
+    },
+    "check": {
+      "heading": "Situação das notas",
+      "checking": "Consultando…",
+      "again": "Consultar de novo",
+      "retry": "Tentar de novo",
+      "started": "Consultando {total, plural, one {# título} other {# títulos}} na API da Fattor.",
+      "progress": "{done} de {total} consultados",
+      "completed": "Consulta concluída: {total, plural, one {# título consultado} other {# títulos consultados}}{failed, plural, =0 {.} one {, # com falha.} other {, # com falha.}}",
+      "credentialsRejected": "A API da Fattor recusou as credenciais do servidor, então a consulta foi interrompida. Tente mais tarde.",
+      "interrupted": "A consulta foi interrompida antes do fim. Os títulos sem situação podem ser consultados de novo.",
+      "summaryItem": "{label}: {count}",
+      "tableCaption": "Situação de cada título do arquivo, na ordem das linhas",
+      "tableRegion": "Lista de títulos",
+      "ordinalColumn": "Nº",
+      "keyColumn": "Chave de acesso da NF-e",
+      "statusColumn": "Situação",
+      "cardTitle": "Título {ordinal}",
+      "fileLine": "linha {lineNumber} do arquivo",
+      "invalidCheckDigit": "Dígito verificador inválido",
+      "invalidCheckDigitHint": "O dígito verificador desta chave não confere; a consulta é feita mesmo assim."
+    },
+    "detail": {
+      "column": "Detalhes",
+      "openLabel": "Detalhes do título {ordinal}",
+      "title": "Título {ordinal}",
+      "fileLine": "Linha {lineNumber} do arquivo",
+      "unavailable": "Título indisponível",
+      "close": "Fechar",
+      "keyHeading": "Chave de acesso da NF-e",
+      "partsHeading": "Partes da chave",
+      "xrayHeading": "Raio-x da linha",
+      "xrayCaption": "Linha {lineNumber} do arquivo, com as 444 posições do registro."
+    },
+    "filters": {
+      "statusLabel": "Filtrar por situação",
+      "searchLabel": "Buscar pela chave de acesso",
+      "searchHint": "Digite qualquer parte da chave; espaços, pontos e traços são ignorados.",
+      "clear": "Limpar filtros",
+      "noMatches": "Nenhum título corresponde aos filtros.",
+      "invalidCharacters": "A chave de acesso tem só números e letras.",
+      "matches": "{count, plural, =0 {Nenhum título encontrado.} one {# título encontrado.} other {# títulos encontrados.}}"
+    },
+    "export": {
+      "button": "{count, plural, =0 {Exportar 0 títulos (CSV)} one {Exportar # título (CSV)} other {Exportar # títulos (CSV)}}",
+      "fileName": "situacoes-remessa.csv",
+      "lineColumn": "Linha do arquivo"
+    },
+    "sorting": {
+      "sortBy": "Ordenar por",
+      "options": {
+        "ordinal-asc": "Nº (ordem do arquivo)",
+        "ordinal-desc": "Nº (do último ao primeiro)",
+        "key-asc": "Chave (crescente)",
+        "key-desc": "Chave (decrescente)",
+        "status-asc": "Situação (autorizadas primeiro)",
+        "status-desc": "Situação (autorizadas por último)"
+      }
+    },
+    "pagination": {
+      "label": "Páginas dos resultados",
+      "range": "{from}–{to} de {count}",
+      "pageSize": "Títulos por página",
+      "previous": "Anterior",
+      "next": "Próxima",
+      "page": "Página {page} de {pageCount}"
+    },
+    "statuses": {
+      "authorized": "Autorizada",
+      "cancelled": "Cancelada",
+      "rejected": "Rejeitada",
+      "denied": "Denegada",
+      "not_found": "Não encontrada",
+      "failed": "Falhou",
+      "pending": "Consultando…",
+      "notChecked": "Não consultado"
+    },
+    "failureReasons": {
+      "UPSTREAM_TIMEOUT": "Falhou: sem resposta a tempo",
+      "UPSTREAM_UNAVAILABLE": "Falhou: API indisponível",
+      "UPSTREAM_INVALID_RESPONSE": "Falhou: resposta inválida da API"
+    },
+    "requestErrors": {
+      "NETWORK_ERROR": "Não foi possível falar com o servidor. Verifique a conexão e tente de novo.",
+      "UNEXPECTED_RESPONSE": "O servidor respondeu de forma inesperada (código {status}).",
+      "INVALID_REQUEST": "O servidor não aceitou o envio do arquivo.",
+      "CROSS_SITE_REQUEST": "O envio foi bloqueado por vir de outra origem.",
+      "LENGTH_REQUIRED": "O navegador não informou o tamanho do arquivo."
+    },
+    "rejections": {
+      "INVALID_FILE": "O arquivo não segue o layout CNAB 444.",
+      "TOO_MANY_RECEIVABLES": "O arquivo tem {actual} títulos; o limite é {max} por envio.",
+      "FILE_TOO_LARGE": "O arquivo passa de {maxKilobytes} KB.",
+      "MULTIPLE_FILES": "Envie um arquivo por vez.",
+      "UNREADABLE_FILE": "Não foi possível ler o arquivo. Ele pode ser uma pasta ou ter sido movido; anexe-o de novo."
+    },
+    "issues": {
+      "EMPTY_FILE": "O arquivo está vazio.",
+      "INVALID_CHARACTERS": "Linha {lineNumber}: contém caracteres de controle.",
+      "INVALID_LINE_LENGTH": "Linha {lineNumber}: {actual, plural, =0 {está vazia} one {tem # caractere} other {tem # caracteres}}; o esperado são {expected}.",
+      "UNEXPECTED_RECORD_TYPE": "Linha {lineNumber}: registro do tipo “{actual}”; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
+      "UNEXPECTED_BLANK_LINE": "Linha {lineNumber}: está em branco; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
+      "MISSING_DETAIL_RECORDS": "O arquivo não tem registros de detalhe (tipo 1).",
+      "INVALID_RECORD_COUNT": "Linha {lineNumber}: o trailer não informa um total de registros válido.",
+      "RECORD_COUNT_MISMATCH": "Linha {lineNumber}: o trailer informa {declared, plural, =0 {0 registros} one {# registro} other {# registros}}, mas o arquivo tem {actual}.",
+      "INVALID_ACCESS_KEY_FORMAT": "Linha {lineNumber}: a chave de acesso da NF-e (colunas 401–444) não tem um formato válido."
+    }
+  },
+  "cnab": {
+    "position": "posição {start}",
+    "positions": "posições {start}–{end}",
+    "fields": {
+      "stateCode": "UF do emitente",
+      "yearMonth": "Ano e mês de emissão",
+      "issuerId": "CNPJ do emitente",
+      "model": "Modelo",
+      "series": "Série",
+      "number": "Número da nota",
+      "emissionType": "Tipo de emissão",
+      "randomCode": "Código numérico",
+      "checkDigit": "Dígito verificador"
+    },
+    "state": "{code} ({abbreviation})",
+    "checkDigitValid": "{digit} (válido)",
+    "checkDigitInvalid": "{digit} (inválido; o esperado é {expected})",
+    "segments": {
+      "recordType": "Tipo de registro",
+      "bankData": "Dados do banco, mostrados sem interpretação",
+      "accessKey": "Chave de acesso da NF-e"
+    },
+    "layout": {
+      "metadataTitle": "Layout do CNAB 444",
+      "title": "Layout do CNAB 444",
+      "intro": "O CNAB 444 é o arquivo de remessa usado na cessão de recebíveis a fundos, securitizadoras e factorings. Cada linha é um registro de {length} colunas: o CNAB 400 de cobrança acrescido da chave de acesso da NF-e que lastreia cada título, nas {keyPositions}.",
+      "docLink": "Documentação completa do layout no repositório",
+      "records": {
+        "title": "Tipos de registro",
+        "description": "A coluna 1 de cada linha diz o tipo do registro.",
+        "recordType": "Tipo {code}, na {position}",
+        "header": {
+          "name": "Header",
+          "description": "Primeira linha: identifica a remessa, a empresa e a data de gravação."
+        },
+        "detail": {
+          "name": "Detalhe",
+          "description": "Uma linha por título: número de controle, vencimento, valor, pagador e chave da NF-e.",
+          "accessKey": "Chave de acesso da NF-e nas {positions}."
+        },
+        "trailer": {
+          "name": "Trailer",
+          "description": "Última linha: fecha o arquivo.",
+          "recordCount": "Total de linhas nas {positions}; na amostra, alinhado à esquerda nas {samplePositions}, seguido de brancos."
+        }
+      },
+      "xray": {
+        "title": "Um detalhe da amostra, coluna a coluna",
+        "description": "Primeiro detalhe do arquivo da prova, com um pagador fictício. As colunas entre campos não têm destaque.",
+        "label": "Linha de detalhe da amostra com os campos destacados",
+        "caption": "Cor sólida e sublinhado: colunas estáveis. Contorno: posições observadas na amostra."
+      },
+      "fields": {
+        "recordType": "Tipo de registro",
+        "titleNumber": "Número do título",
+        "titleNumberDigit": "Dígito do número do título",
+        "controlNumber": "Número de controle do participante",
+        "titleKind": "Espécie do título",
+        "dueDate": "Vencimento",
+        "amount": "Valor do título",
+        "payerDocument": "CPF/CNPJ do pagador",
+        "payerName": "Nome do pagador",
+        "payerCity": "Cidade do pagador",
+        "payerPostalCode": "CEP do pagador",
+        "payerState": "UF do pagador",
+        "invoiceAccessKey": "Chave de acesso da NF-e"
+      },
+      "table": {
+        "title": "Campos do detalhe",
+        "observedNote": "Só o tipo de registro e a chave da NF-e têm posição garantida, e só eles são usados na extração. As demais posições foram observadas na amostra e não são garantidas: no detalhe 2, por exemplo, todos os campos a partir do número de controle estão uma coluna à direita.",
+        "caption": "Campos do primeiro detalhe da amostra",
+        "scrollLabel": "Tabela de campos do detalhe, com rolagem horizontal",
+        "columns": {
+          "field": "Campo",
+          "positions": "Posições",
+          "raw": "Valor no arquivo",
+          "decoded": "Valor decodificado",
+          "reliability": "Confiabilidade"
+        },
+        "reliability": {
+          "stable": "Estável",
+          "observed": "Observado na amostra"
+        },
+        "detailRecord": "Detalhe",
+        "notDecoded": "—"
+      },
+      "accessKey": {
+        "title": "Anatomia da chave de acesso",
+        "description": "A chave da NF-e tem 44 dígitos e codifica a nota que originou o título. É ela que identifica cada item na consulta de status."
+      }
+    }
   },
   "notFound": {
     "title": "Página não encontrada",
@@ -13,5 +225,30 @@
   },
   "footer": {
     "disclaimer": "Projeto de avaliação técnica — não é um produto oficial da Fattor Crédito."
+  },
+  "appBar": {
+    "name": "Status CNAB 444",
+    "nav": {
+      "label": "Principal",
+      "check": "Consultar",
+      "layout": "Layout CNAB 444"
+    },
+    "theme": {
+      "label": "Tema",
+      "system": "Seguir o tema do sistema",
+      "light": "Tema claro",
+      "dark": "Tema escuro"
+    },
+    "language": {
+      "label": "Idioma",
+      "shortNames": {
+        "pt-BR": "PT",
+        "en": "EN"
+      },
+      "names": {
+        "pt-BR": "Português",
+        "en": "English"
+      }
+    }
   }
 }

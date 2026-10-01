@@ -1,6 +1,7 @@
 import type {
   RemittanceCheckEvent,
   RemittanceCheckPolicy,
+  RemittanceStreamEvent,
 } from "@/application/remittance/check-remittance";
 import {
   checkRemittance,
@@ -33,7 +34,7 @@ function toNdjsonStream(
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const iterator = events[Symbol.asyncIterator]();
-  const encodeLine = (value: object) => encoder.encode(`${JSON.stringify(value)}\n`);
+  const encodeLine = (event: RemittanceStreamEvent) => encoder.encode(`${JSON.stringify(event)}\n`);
   return new ReadableStream<Uint8Array>({
     start(controller) {
       controller.enqueue(encodeLine({ type: "started", total }));
