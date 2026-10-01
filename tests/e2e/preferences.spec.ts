@@ -175,6 +175,15 @@ test.describe("language switcher", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "pt-BR");
   });
 
+  test("shows the brand mark as a decoration of the home link", async ({ page }) => {
+    await page.goto("/");
+
+    const homeLink = page.getByRole("banner").getByRole("link");
+    await expect(homeLink).toHaveAccessibleName(/CNAB 444/);
+    await expect(homeLink.locator("img")).toBeVisible();
+    await expect(homeLink.locator("img")).toHaveAttribute("alt", "");
+  });
+
   test("names each language with its visible code", async ({ page }) => {
     await page.goto("/");
 

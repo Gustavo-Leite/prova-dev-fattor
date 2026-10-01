@@ -7,6 +7,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { AppBar } from "@/features/preferences/app-bar";
 import { isTheme, themeCookieName } from "@/lib/theme";
 
+import brandMark from "./icon.png";
+
 import "./globals.css";
 
 const sora = Sora({
@@ -39,7 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sora.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col desktop-tall:h-dvh" suppressHydrationWarning>
-        <AppBar locale={locale} theme={theme} />
+        <AppBar locale={locale} theme={theme} logo={brandMark} />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <footer className="shrink-0 border-t px-4 py-3 text-center text-xs text-muted-foreground">
           {t("disclaimer")}

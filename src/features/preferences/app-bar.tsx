@@ -1,3 +1,5 @@
+import type { StaticImageData } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
@@ -9,9 +11,10 @@ import type { Theme } from "@/lib/theme";
 export interface AppBarProps {
   readonly locale: Locale;
   readonly theme: Theme | undefined;
+  readonly logo: StaticImageData;
 }
 
-export async function AppBar({ locale, theme }: AppBarProps) {
+export async function AppBar({ locale, theme, logo }: AppBarProps) {
   const t = await getTranslations("appBar");
 
   return (
@@ -19,9 +22,17 @@ export async function AppBar({ locale, theme }: AppBarProps) {
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="min-w-0 truncate rounded-md text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          className="flex min-w-0 items-center gap-2 rounded-md text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         >
-          {t("name")}
+          <Image
+            src={logo}
+            alt=""
+            width={28}
+            height={28}
+            priority
+            className="size-7 shrink-0 rounded-md dark:bg-white dark:p-0.5"
+          />
+          <span className="truncate">{t("name")}</span>
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeSwitcher current={theme} />
