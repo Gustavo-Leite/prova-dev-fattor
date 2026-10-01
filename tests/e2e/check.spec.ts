@@ -165,6 +165,18 @@ test.describe("status check (pt-BR)", () => {
     );
   });
 
+  test("explains that the Fattor API is unreachable", async ({ page }) => {
+    await chooseSample(page);
+    await page.getByRole("button", { name: "Consultar situações" }).click();
+
+    await expect(milestone(page)).toHaveText(
+      "Consulta concluída: 10 títulos consultados, 10 com falha.",
+    );
+    await expect(visibleRowFor(page, sampleReceivables[0]?.key ?? "")).toContainText(
+      "Falhou: API indisponível",
+    );
+  });
+
   test("drops the current check when another file is chosen", async ({ page }) => {
     let markStaleResponseSent: () => void = () => undefined;
     const staleResponseSent = new Promise<void>((resolve) => {
