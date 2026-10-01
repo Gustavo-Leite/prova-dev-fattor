@@ -36,9 +36,31 @@ export function normalizeQuery(input: string): NormalizedQuery {
   return /^\d+$/.test(digits) ? { kind: "digits", digits } : { kind: "invalid" };
 }
 
+export type SortColumn = "ordinal" | "key" | "status";
+
+export type SortDirection = "asc" | "desc";
+
+export interface RowSort {
+  readonly column: SortColumn;
+  readonly direction: SortDirection;
+}
+
+export const defaultSort: RowSort = { column: "ordinal", direction: "asc" };
+
+export function nextSort(current: RowSort, column: SortColumn): RowSort {
+  if (current.column !== column) {
+    return { column, direction: "asc" };
+  }
+  if (current.direction === "asc") {
+    return { column, direction: "desc" };
+  }
+  return defaultSort;
+}
+
 export interface RowSelection {
   readonly tones: ReadonlySet<RowTone>;
   readonly query: string;
+  readonly sort: RowSort;
   readonly pageIndex: number;
   readonly pageSize: number;
 }
@@ -64,14 +86,41 @@ function matchesQuery(row: ReceivableRow, query: NormalizedQuery): boolean {
   }
 }
 
+const toneRank = new Map(summaryOrder.map((tone, index) => [tone, index]));
+
+function compareBy(column: SortColumn, left: ReceivableRow, right: ReceivableRow): number {
+  switch (column) {
+    case "ordinal":
+      return left.ordinal - right.ordinal;
+    case "key":
+      if (left.invoiceAccessKey === right.invoiceAccessKey) {
+        return 0;
+      }
+      return left.invoiceAccessKey < right.invoiceAccessKey ? -1 : 1;
+    case "status":
+      return (toneRank.get(toneOf(left)) ?? 0) - (toneRank.get(toneOf(right)) ?? 0);
+  }
+}
+
+function sortRows(rows: readonly ReceivableRow[], sort: RowSort): ReceivableRow[] {
+  const sign = sort.direction === "asc" ? 1 : -1;
+  return [...rows].sort(
+    (left, right) => sign * compareBy(sort.column, left, right) || left.ordinal - right.ordinal,
+  );
+}
+
 export function selectVisibleRows(
   rows: readonly ReceivableRow[],
   selection: RowSelection,
 ): VisibleRows {
   const query = normalizeQuery(selection.query);
-  const filtered = rows.filter(
-    (row) =>
-      (selection.tones.size === 0 || selection.tones.has(toneOf(row))) && matchesQuery(row, query),
+  const filtered = sortRows(
+    rows.filter(
+      (row) =>
+        (selection.tones.size === 0 || selection.tones.has(toneOf(row))) &&
+        matchesQuery(row, query),
+    ),
+    selection.sort,
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length / selection.pageSize));
   const pageIndex = Math.min(Math.max(selection.pageIndex, 0), pageCount - 1);

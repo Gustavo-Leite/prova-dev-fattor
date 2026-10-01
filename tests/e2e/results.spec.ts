@@ -190,6 +190,60 @@ test.describe("results list (pt-BR)", () => {
   });
 });
 
+test.describe("results list sorting (pt-BR)", () => {
+  test.use({ locale: "pt-BR" });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
+    await checkRemittance(page);
+    await expect(pagination(page)).toContainText("1–25 de 30");
+  });
+
+  function firstRow(page: Page) {
+    return visibleRows(page).first();
+  }
+
+  test("sorts by clicking the column headers", async ({ page, isMobile }) => {
+    test.skip(isMobile, "phones sort with a select");
+    const header = (name: string) =>
+      resultsSection(page).getByRole("columnheader", { name, exact: true });
+    const sortButton = (name: string) => header(name).getByRole("button");
+
+    await expect(header("Nº")).toHaveAttribute("aria-sort", "ascending");
+    await expect(firstRow(page)).toContainText("linha 2 do arquivo");
+
+    await sortButton("Nº").click();
+    await expect(header("Nº")).toHaveAttribute("aria-sort", "descending");
+    await expect(firstRow(page)).toContainText("linha 31 do arquivo");
+
+    await pagination(page).getByLabel("Títulos por página").selectOption("10");
+    await nextPage(page).click();
+    await sortButton("Situação").click();
+    await expect(header("Situação")).toHaveAttribute("aria-sort", "ascending");
+    await expect(header("Nº")).not.toHaveAttribute("aria-sort");
+    await expect(pagination(page)).toContainText("1–10 de 30");
+    await expect(firstRow(page)).toContainText("Autorizada");
+
+    await sortButton("Situação").click();
+    await expect(firstRow(page)).toContainText("Denegada");
+    await sortButton("Situação").click();
+    await expect(header("Nº")).toHaveAttribute("aria-sort", "ascending");
+    await expect(firstRow(page)).toContainText("linha 2 do arquivo");
+  });
+
+  test("sorts with a select on phones", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "desktops sort from the column headers");
+    const select = resultsSection(page).getByLabel("Ordenar por");
+
+    await select.selectOption({ label: "Situação (autorizadas por último)" });
+    await expect(firstRow(page)).toContainText("Denegada");
+
+    await select.selectOption({ label: "Nº (do último ao primeiro)" });
+    await expect(firstRow(page)).toContainText("linha 31 do arquivo");
+  });
+});
+
 test.describe("results list layout on desktop (pt-BR)", () => {
   test.use({ locale: "pt-BR" });
   test.skip(({ isMobile }) => isMobile, "the page keeps its natural scroll on phones");

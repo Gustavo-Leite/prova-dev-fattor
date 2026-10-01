@@ -81,6 +81,17 @@
       "digitsOnly": "Access keys only have digits.",
       "matches": "{count, plural, =0 {No receivables found.} one {# receivable found.} other {# receivables found.}}"
     },
+    "sorting": {
+      "sortBy": "Sort by",
+      "options": {
+        "ordinal-asc": "No. (file order)",
+        "ordinal-desc": "No. (last to first)",
+        "key-asc": "Key (ascending)",
+        "key-desc": "Key (descending)",
+        "status-asc": "Status (authorized first)",
+        "status-desc": "Status (authorized last)"
+      }
+    },
     "pagination": {
       "label": "Result pages",
       "range": "{from}–{to} of {count}",

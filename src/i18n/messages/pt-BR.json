@@ -81,6 +81,17 @@
       "digitsOnly": "A chave de acesso tem só números.",
       "matches": "{count, plural, =0 {Nenhum título encontrado.} one {# título encontrado.} other {# títulos encontrados.}}"
     },
+    "sorting": {
+      "sortBy": "Ordenar por",
+      "options": {
+        "ordinal-asc": "Nº (ordem do arquivo)",
+        "ordinal-desc": "Nº (do último ao primeiro)",
+        "key-asc": "Chave (crescente)",
+        "key-desc": "Chave (decrescente)",
+        "status-asc": "Situação (autorizadas primeiro)",
+        "status-desc": "Situação (autorizadas por último)"
+      }
+    },
     "pagination": {
       "label": "Páginas dos resultados",
       "range": "{from}–{to} de {count}",

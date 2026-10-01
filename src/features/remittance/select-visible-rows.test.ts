@@ -6,9 +6,11 @@ import type {
   RowTone,
 } from "@/features/remittance/remittance-check-state";
 import { summarizeRows } from "@/features/remittance/remittance-check-state";
-import type { RowSelection } from "@/features/remittance/select-visible-rows";
+import type { RowSelection, RowSort } from "@/features/remittance/select-visible-rows";
 import {
+  defaultSort,
   filterOptions,
+  nextSort,
   normalizeQuery,
   selectVisibleRows,
 } from "@/features/remittance/select-visible-rows";
@@ -27,7 +29,13 @@ const authorized: RowState = { kind: "status", status: "authorized" };
 const cancelled: RowState = { kind: "status", status: "cancelled" };
 const timedOut: RowState = { kind: "failed", reason: "UPSTREAM_TIMEOUT" };
 
-const everything: RowSelection = { tones: new Set(), query: "", pageIndex: 0, pageSize: 25 };
+const everything: RowSelection = {
+  tones: new Set(),
+  query: "",
+  sort: defaultSort,
+  pageIndex: 0,
+  pageSize: 25,
+};
 
 function lines(rows: readonly ReceivableRow[]) {
   return rows.map((item) => item.lineNumber);
@@ -130,6 +138,74 @@ describe("selectVisibleRows", () => {
   it("falls back to the first page when nothing matches or the index is negative", () => {
     expect(selectVisibleRows([], { ...everything, pageIndex: 4 }).pageIndex).toBe(0);
     expect(selectVisibleRows(rows, { ...everything, pageIndex: -1 }).pageIndex).toBe(0);
+  });
+});
+
+describe("sorting", () => {
+  const rejected: RowState = { kind: "status", status: "rejected" };
+  const mixed = [
+    row(2, cancelled),
+    row(3),
+    row(4, authorized),
+    row(5, timedOut),
+    row(6, cancelled),
+    row(7, rejected),
+  ];
+
+  function sorted(sort: RowSort, rows = mixed) {
+    return lines(selectVisibleRows(rows, { ...everything, sort }).pageRows);
+  }
+
+  it("keeps the file order by default", () => {
+    expect(sorted(defaultSort)).toEqual([2, 3, 4, 5, 6, 7]);
+  });
+
+  it("reverses the file order", () => {
+    expect(sorted({ column: "ordinal", direction: "desc" })).toEqual([7, 6, 5, 4, 3, 2]);
+  });
+
+  it("orders statuses by meaning, with failed and pending last, ties in file order", () => {
+    expect(sorted({ column: "status", direction: "asc" })).toEqual([4, 2, 6, 7, 5, 3]);
+  });
+
+  it("keeps ties in file order when the status order is reversed", () => {
+    expect(sorted({ column: "status", direction: "desc" })).toEqual([3, 5, 7, 2, 6, 4]);
+  });
+
+  it("orders keys as text and keeps equal keys in file order", () => {
+    const sameKey = { ...row(8, authorized), invoiceAccessKey: row(3).invoiceAccessKey };
+    const rows = [row(4), sameKey, row(3), row(2)];
+    expect(sorted({ column: "key", direction: "asc" }, rows)).toEqual([2, 3, 8, 4]);
+    expect(sorted({ column: "key", direction: "desc" }, rows)).toEqual([4, 3, 8, 2]);
+  });
+
+  it("sorts before slicing the page", () => {
+    const visible = selectVisibleRows(manyRows(23), {
+      ...everything,
+      sort: { column: "ordinal", direction: "desc" },
+      pageSize: 10,
+      pageIndex: 1,
+    });
+    expect(lines(visible.pageRows)).toEqual([14, 13, 12, 11, 10, 9, 8, 7, 6, 5]);
+  });
+});
+
+describe("nextSort", () => {
+  it("starts a new column ascending", () => {
+    expect(nextSort(defaultSort, "status")).toEqual({ column: "status", direction: "asc" });
+  });
+
+  it("cycles a column from ascending to descending and back to the file order", () => {
+    const ascending = nextSort(defaultSort, "key");
+    const descending = nextSort(ascending, "key");
+    expect(descending).toEqual({ column: "key", direction: "desc" });
+    expect(nextSort(descending, "key")).toEqual(defaultSort);
+  });
+
+  it("toggles the number column between both directions", () => {
+    const descending = nextSort(defaultSort, "ordinal");
+    expect(descending).toEqual({ column: "ordinal", direction: "desc" });
+    expect(nextSort(descending, "ordinal")).toEqual(defaultSort);
   });
 });
 

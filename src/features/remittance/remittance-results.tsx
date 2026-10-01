@@ -29,8 +29,18 @@ import { summarizeRows, toneOf } from "@/features/remittance/remittance-check-st
 import { ReceivableDetailDialog } from "@/features/remittance/receivable-detail-dialog";
 import { ResultsPagination } from "@/features/remittance/results-pagination";
 import { ResultsToolbar } from "@/features/remittance/results-toolbar";
-import type { PageSize } from "@/features/remittance/select-visible-rows";
-import { defaultPageSize, selectVisibleRows } from "@/features/remittance/select-visible-rows";
+import type {
+  PageSize,
+  RowSort,
+  SortColumn,
+  SortDirection,
+} from "@/features/remittance/select-visible-rows";
+import {
+  defaultPageSize,
+  defaultSort,
+  nextSort,
+  selectVisibleRows,
+} from "@/features/remittance/select-visible-rows";
 
 export interface RemittanceResultsProps {
   readonly rows: readonly ReceivableRow[];
@@ -45,13 +55,14 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState<PageSize>(defaultPageSize);
+  const [sort, setSort] = useState<RowSort>(defaultSort);
 
   const summary = summarizeRows(rows);
   const total = rows.length;
   const isChecking = state.phase === "checking";
   const hasRows = state.phase !== "idle" && state.phase !== "requestFailed";
   const hasFilters = tones.size > 0 || query !== "";
-  const visible = selectVisibleRows(rows, { tones, query, pageIndex, pageSize });
+  const visible = selectVisibleRows(rows, { tones, query, sort, pageIndex, pageSize });
   if (visible.pageIndex !== pageIndex) {
     setPageIndex(visible.pageIndex);
   }
@@ -79,6 +90,10 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
   const clearFilters = () => {
     setTones(new Set());
     setQuery("");
+    setPageIndex(0);
+  };
+  const changeSort = (next: RowSort) => {
+    setSort(next);
     setPageIndex(0);
   };
   const changePageSize = (next: PageSize) => {
@@ -173,9 +188,25 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
                   <TableCaption className="sr-only">{t("check.tableCaption")}</TableCaption>
                   <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_var(--border)]">
                     <TableRow>
-                      <TableHead className="w-28">{t("check.ordinalColumn")}</TableHead>
-                      <TableHead>{t("check.keyColumn")}</TableHead>
-                      <TableHead>{t("check.statusColumn")}</TableHead>
+                      <SortableHead
+                        column="ordinal"
+                        label={t("check.ordinalColumn")}
+                        sort={sort}
+                        onSort={changeSort}
+                        className="w-28"
+                      />
+                      <SortableHead
+                        column="key"
+                        label={t("check.keyColumn")}
+                        sort={sort}
+                        onSort={changeSort}
+                      />
+                      <SortableHead
+                        column="status"
+                        label={t("check.statusColumn")}
+                        sort={sort}
+                        onSort={changeSort}
+                      />
                       <TableHead className="w-12">
                         <span className="sr-only">{t("detail.column")}</span>
                       </TableHead>
@@ -194,6 +225,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
                 </Table>
               </div>
 
+              <SortSelect sort={sort} onSort={changeSort} />
               <ul className="flex flex-col gap-2 md:hidden">
                 {visible.pageRows.map((row) => (
                   <ResultCard
@@ -226,6 +258,87 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
         </>
       )}
     </div>
+  );
+}
+
+const sortOptions: readonly RowSort[] = [
+  { column: "ordinal", direction: "asc" },
+  { column: "ordinal", direction: "desc" },
+  { column: "key", direction: "asc" },
+  { column: "key", direction: "desc" },
+  { column: "status", direction: "asc" },
+  { column: "status", direction: "desc" },
+];
+
+function sortValue({ column, direction }: RowSort): `${SortColumn}-${SortDirection}` {
+  return `${column}-${direction}`;
+}
+
+interface SortControlProps {
+  readonly sort: RowSort;
+  readonly onSort: (sort: RowSort) => void;
+}
+
+function SortSelect({ sort, onSort }: SortControlProps) {
+  const t = useTranslations("remittance.sorting");
+  const selectId = useId();
+  return (
+    <div className="flex items-center gap-2 text-sm md:hidden">
+      <label htmlFor={selectId}>{t("sortBy")}</label>
+      <select
+        id={selectId}
+        value={sortValue(sort)}
+        className="h-8 min-w-0 flex-1 rounded-lg border border-input bg-background px-2 outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        onChange={(event) => {
+          onSort(
+            sortOptions.find((option) => sortValue(option) === event.target.value) ?? defaultSort,
+          );
+        }}
+      >
+        {sortOptions.map((option) => (
+          <option key={sortValue(option)} value={sortValue(option)}>
+            {t(`options.${sortValue(option)}`)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+interface SortableHeadProps extends SortControlProps {
+  readonly column: SortColumn;
+  readonly label: string;
+  readonly className?: string;
+}
+
+function SortableHead({ column, label, sort, onSort, className }: SortableHeadProps) {
+  const direction = sort.column === column ? sort.direction : null;
+  const ariaSort = { asc: "ascending", desc: "descending" } as const;
+  return (
+    <TableHead className={className} aria-sort={direction ? ariaSort[direction] : undefined}>
+      <button
+        type="button"
+        className="-mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+        onClick={() => {
+          onSort(nextSort(sort, column));
+        }}
+      >
+        {label}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={direction ? "size-4" : "size-4 text-muted-foreground"}
+        >
+          {direction !== "desc" && <path d="m7 10 5-5 5 5" />}
+          {direction !== "asc" && <path d="m7 14 5 5 5-5" />}
+        </svg>
+      </button>
+    </TableHead>
   );
 }
 
