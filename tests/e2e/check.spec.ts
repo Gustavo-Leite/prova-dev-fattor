@@ -17,11 +17,10 @@ const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function chooseSample(page: Page) {
   await page.locator('input[type="file"]').setInputFiles(samplePath);
-  await expect(page.getByRole("button", { name: "Consultar situações" })).toBeVisible();
 }
 
 function milestone(page: Page) {
-  return resultsSection(page).getByRole("status").filter({ hasText: "Consulta" });
+  return page.getByRole("status").filter({ hasText: /^Consult/ });
 }
 
 function statusFilters(page: Page) {
@@ -35,11 +34,38 @@ test.describe("status check (pt-BR)", () => {
     await page.goto("/");
   });
 
-  test("lists the status of every receivable with a summary", async ({ page }) => {
-    await page.route("**/api/remittances", fulfillStream(fullStream()));
+  test("checks the statuses as soon as a valid file is attached", async ({ page }) => {
+    let requests = 0;
+    await page.route("**/api/remittances", async (route) => {
+      requests++;
+      await fulfillStream(fullStream())(route);
+    });
+
     await chooseSample(page);
 
-    await page.getByRole("button", { name: "Consultar situações" }).click();
+    await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
+    expect(requests).toBe(1);
+  });
+
+  test("announces the check in a live region that exists before the file", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillStream(fullStream()));
+    await page.evaluate(() => {
+      for (const region of document.querySelectorAll("main [role=status]")) {
+        region.setAttribute("data-mounted-before-attach", "");
+      }
+    });
+
+    await chooseSample(page);
+
+    await expect(page.locator("[data-mounted-before-attach]", { hasText: /^Consult/ })).toHaveText(
+      "Consulta concluída: 10 títulos consultados.",
+    );
+  });
+
+  test("lists the status of every receivable with a summary", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillStream(fullStream()));
+
+    await chooseSample(page);
 
     const results = resultsSection(page);
     await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
@@ -61,16 +87,18 @@ test.describe("status check (pt-BR)", () => {
       await fulfillStream(fullStream())(route);
     });
     await chooseSample(page);
+    const again = page.getByRole("button", { name: "Consultar de novo" });
+    await expect(again).toBeVisible();
 
-    await page.getByRole("button", { name: "Consultar situações" }).focus();
+    await again.focus();
     await page.keyboard.press("Enter");
 
     const checking = page.getByRole("button", { name: "Consultando…", exact: true });
     await expect(checking).toBeFocused();
     await expect(checking).toHaveAttribute("aria-disabled", "true");
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
-    expect(attempts).toBe(1);
+    await expect(again).toBeVisible();
+    expect(attempts).toBe(2);
   });
 
   test("shows an item that failed without stopping the others", async ({ page }) => {
@@ -81,7 +109,6 @@ test.describe("status check (pt-BR)", () => {
       ),
     );
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await expect(visibleRowFor(page, sampleReceivables[2]?.key ?? "")).toContainText(
       "Falhou: sem resposta a tempo",
@@ -104,7 +131,6 @@ test.describe("status check (pt-BR)", () => {
       ),
     );
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await expect(resultsSection(page).getByRole("alert")).toContainText(
       "A API da Fattor recusou as credenciais do servidor",
@@ -123,7 +149,6 @@ test.describe("status check (pt-BR)", () => {
       await fulfillStream(body)(route);
     });
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await expect(resultsSection(page).getByRole("alert")).toContainText(
       "A consulta foi interrompida antes do fim.",
@@ -148,7 +173,6 @@ test.describe("status check (pt-BR)", () => {
       }),
     );
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await expect(resultsSection(page).getByRole("alert")).toContainText(
       "O arquivo tem 10 títulos; o limite é 5 por envio.",
@@ -158,7 +182,6 @@ test.describe("status check (pt-BR)", () => {
   test("explains a network failure", async ({ page }) => {
     await page.route("**/api/remittances", (route) => route.abort("connectionreset"));
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await expect(resultsSection(page).getByRole("alert")).toContainText(
       "Não foi possível falar com o servidor.",
@@ -167,7 +190,6 @@ test.describe("status check (pt-BR)", () => {
 
   test("explains that the Fattor API is unreachable", async ({ page }) => {
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await expect(milestone(page)).toHaveText(
       "Consulta concluída: 10 títulos consultados, 10 com falha.",
@@ -182,7 +204,15 @@ test.describe("status check (pt-BR)", () => {
     const staleResponseSent = new Promise<void>((resolve) => {
       markStaleResponseSent = resolve;
     });
+    let requests = 0;
     await page.route("**/api/remittances", async (route) => {
+      requests++;
+      if (requests > 1) {
+        await fulfillStream(
+          fullStream(sampleReceivables, { 4: { outcome: "failed", reason: "UPSTREAM_TIMEOUT" } }),
+        )(route);
+        return;
+      }
       await new Promise((resolve) => setTimeout(resolve, 500));
       await fulfillStream(fullStream())(route).catch(() => undefined);
       markStaleResponseSent();
@@ -190,18 +220,20 @@ test.describe("status check (pt-BR)", () => {
     const failedRequests: string[] = [];
     page.on("requestfailed", (request) => failedRequests.push(request.url()));
     await chooseSample(page);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
     await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeVisible();
 
     await chooseSample(page);
 
-    await expect(page.getByRole("button", { name: "Consultar situações" })).toBeVisible();
+    const finished = "Consulta concluída: 10 títulos consultados, 1 com falha.";
+    await expect(milestone(page)).toHaveText(finished);
     await expect
       .poll(() => failedRequests)
       .toContainEqual(expect.stringContaining("/api/remittances"));
     await staleResponseSent;
+    await expect(milestone(page)).toHaveText(finished);
+    await expect(statusFilters(page)).toContainText("Falhou: 1");
     await expect(resultsSection(page).getByRole("alert")).toHaveCount(0);
-    await expect(resultsSection(page).getByText("de 10 consultados")).toHaveCount(0);
+    expect(requests).toBe(2);
   });
 });
 
@@ -221,7 +253,6 @@ for (const colorScheme of ["light", "dark"] as const) {
         ),
       );
       await chooseSample(page);
-      await page.getByRole("button", { name: "Consultar situações" }).click();
       await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
 
       const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
@@ -238,7 +269,6 @@ test.describe("status check (en)", () => {
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream()));
     await page.locator('input[type="file"]').setInputFiles(samplePath);
-    await page.getByRole("button", { name: "Check statuses" }).click();
 
     await expect(page.getByRole("region", { name: "Invoice statuses" })).toContainText(
       "Authorized: 5",

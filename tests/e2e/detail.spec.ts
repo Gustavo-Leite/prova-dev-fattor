@@ -7,10 +7,9 @@ import { fulfillStream, fullStream, samplePath, sampleReceivables } from "./remi
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const firstKey = sampleReceivables[0]?.key ?? "";
 
-async function checkSample(page: Page, submitLabel: string, againLabel: string) {
+async function checkSample(page: Page, againLabel: string) {
   await page.route("**/api/remittances", fulfillStream(fullStream()));
   await page.locator('input[type="file"]').setInputFiles(samplePath);
-  await page.getByRole("button", { name: submitLabel }).click();
   await expect(page.getByRole("button", { name: againLabel })).toBeVisible();
 }
 
@@ -47,7 +46,7 @@ test.describe("receivable detail (pt-BR)", () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await checkSample(page, "Consultar situações", "Consultar de novo");
+    await checkSample(page, "Consultar de novo");
   });
 
   test("splits the access key and shows the raw record", async ({ page }) => {
@@ -170,7 +169,6 @@ test.describe("receivable detail during a check (pt-BR)", () => {
     });
     await page.goto("/");
     await page.locator('input[type="file"]').setInputFiles(samplePath);
-    await page.getByRole("button", { name: "Consultar situações" }).click();
 
     await detailButton(page, "Detalhes do título 1").click();
     const dialog = page.getByRole("dialog", { name: "Título 1" });
@@ -189,7 +187,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     test("has no WCAG 2.2 AA violations with the dialog open", async ({ page }) => {
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       await page.goto("/");
-      await checkSample(page, "Consultar situações", "Consultar de novo");
+      await checkSample(page, "Consultar de novo");
       await detailButton(page, "Detalhes do título 2").click();
       await expect(page.getByRole("dialog", { name: "Título 2" })).toBeVisible();
 
@@ -205,7 +203,7 @@ test.describe("receivable detail (en)", () => {
 
   test("formats the month of issue in English", async ({ page }) => {
     await page.goto("/");
-    await checkSample(page, "Check statuses", "Check again");
+    await checkSample(page, "Check again");
     await detailButton(page, "Details of receivable 1").click();
 
     await expect(page.getByRole("dialog", { name: "Receivable 1" })).toContainText("March 2024");

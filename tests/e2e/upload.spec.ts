@@ -4,6 +4,8 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { fulfillStream, fullStream } from "./remittance-stream";
+
 const samplePath = path.join(__dirname, "../../_prova/meu_cnab.rem");
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -49,6 +51,10 @@ async function dropFiles(page: Page, files: readonly { name: string; content: st
   }, files);
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/remittances", fulfillStream(fullStream()));
+});
+
 test.describe("remittance upload (pt-BR)", () => {
   test.use({ locale: "pt-BR" });
 
@@ -61,13 +67,19 @@ test.describe("remittance upload (pt-BR)", () => {
       await fileInput(page).setInputFiles(samplePath);
 
       const status = uploadStatus(page);
-      await expect(status).toContainText("10 títulos prontos para consulta em meu_cnab.rem.");
+      await expect(status).toContainText("10 títulos lidos em meu_cnab.rem.");
       await expect(status).toContainText("7 chaves têm dígito verificador inválido");
       await expect(uploadAlert(page)).toHaveCount(0);
       await expect(page.getByText("Anexar outro arquivo")).toBeVisible();
     });
 
     test("lists the layout problems of an invalid file", async ({ page }) => {
+      let requests = 0;
+      await page.route("**/api/remittances", async (route) => {
+        requests++;
+        await fulfillStream(fullStream())(route);
+      });
+
       await uploadBuffer(page, "errado.rem", "not a remittance\n");
 
       const alert = uploadAlert(page);
@@ -76,6 +88,10 @@ test.describe("remittance upload (pt-BR)", () => {
       await expect(alert).toContainText("Linha 1: tem 16 caracteres; o esperado são 444.");
       await expect(uploadStatus(page)).toBeEmpty();
       await expect(fileInput(page)).toHaveAttribute("aria-invalid", "true");
+
+      await fileInput(page).setInputFiles(samplePath);
+      await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
+      expect(requests).toBe(1);
     });
 
     test("refuses a file above the size limit", async ({ page }) => {
@@ -91,7 +107,7 @@ test.describe("remittance upload (pt-BR)", () => {
       await fileInput(page).setInputFiles(samplePath);
 
       await expect(uploadAlert(page)).toHaveCount(0);
-      await expect(uploadStatus(page)).toContainText("10 títulos prontos");
+      await expect(uploadStatus(page)).toContainText("10 títulos lidos");
       await expect(fileInput(page)).toHaveAttribute("aria-invalid", "false");
     });
 
@@ -136,7 +152,7 @@ test.describe("remittance upload (pt-BR)", () => {
     await expect(uploadStatus(page)).toContainText("Lendo meu_cnab.rem");
     await dropFiles(page, []);
 
-    await expect(uploadStatus(page)).toContainText("10 títulos prontos");
+    await expect(uploadStatus(page)).toContainText("10 títulos lidos");
   });
 
   for (const colorScheme of ["light", "dark"] as const) {
@@ -156,8 +172,10 @@ test.describe("remittance upload (pt-BR)", () => {
       });
 
       test("has no WCAG 2.2 AA violations after a valid file", async ({ page }) => {
+        await page.route("**/api/remittances", fulfillStream(fullStream()));
         await fileInput(page).setInputFiles(samplePath);
         await expect(uploadStatus(page)).toContainText("10 títulos");
+        await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
 
         const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
 
@@ -174,8 +192,6 @@ test.describe("remittance upload (en)", () => {
     await page.goto("/");
     await fileInput(page).setInputFiles(samplePath);
 
-    await expect(uploadStatus(page)).toContainText(
-      "10 receivables ready to check in meu_cnab.rem.",
-    );
+    await expect(uploadStatus(page)).toContainText("10 receivables read from meu_cnab.rem.");
   });
 });

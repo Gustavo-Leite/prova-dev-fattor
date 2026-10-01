@@ -14,14 +14,13 @@
       "attachAnother": "Attach another file",
       "hint": "CNAB 444 (.rem or .txt), up to {maxKilobytes} KB and {maxReceivables} receivables",
       "reading": "Reading {fileName}…",
-      "ready": "{count, plural, one {# receivable} other {# receivables}} ready to check in {fileName}.",
+      "ready": "{count, plural, one {# receivable} other {# receivables}} read from {fileName}.",
       "invalidCheckDigits": "{count, plural, one {# key has} other {# keys have}} an invalid check digit; they will be checked anyway.",
       "rejectedFile": "File: {fileName}",
       "truncated": "There are more problems besides these."
     },
     "check": {
       "heading": "Invoice statuses",
-      "submit": "Check statuses",
       "checking": "Checking…",
       "again": "Check again",
       "retry": "Try again",

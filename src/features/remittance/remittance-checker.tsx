@@ -10,6 +10,7 @@ import {
   deriveRows,
   initialCheckState,
   remittanceCheckReducer,
+  summarizeRows,
 } from "@/features/remittance/remittance-check-state";
 import { RemittanceResults } from "@/features/remittance/remittance-results";
 import { RemittanceUpload } from "@/features/remittance/remittance-upload";
@@ -47,15 +48,7 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
     setSelection(null);
   }, [cancelInFlight]);
 
-  const handleReady = useCallback(
-    (file: File, receivables: readonly Receivable[], lines: readonly string[]) => {
-      setSelection({ file, receivables, lines });
-    },
-    [],
-  );
-
-  const check = async (current: Selection) => {
-    cancelInFlight();
+  const check = useCallback(async (current: Selection) => {
     const controller = new AbortController();
     inFlight.current = controller;
     const attempt = ++latestAttempt.current;
@@ -72,11 +65,20 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
     for await (const event of readStatusStream(submission.body, expected, controller.signal)) {
       dispatch({ type: "received", attempt, event });
     }
-  };
+  }, []);
+
+  const handleReady = useCallback(
+    (file: File, receivables: readonly Receivable[], lines: readonly string[]) => {
+      const current = { file, receivables, lines };
+      setSelection(current);
+      void check(current);
+    },
+    [check],
+  );
 
   const isChecking = state.phase === "checking";
   const actionLabel = {
-    idle: t("check.submit"),
+    idle: t("check.checking"),
     checking: t("check.checking"),
     completed: t("check.again"),
     failed: t("check.retry"),
@@ -84,9 +86,22 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
     requestFailed: t("check.retry"),
   }[state.phase];
 
+  const rows = selection ? deriveRows(selection.receivables, state) : [];
+  const announcement = {
+    idle: "",
+    requestFailed: "",
+    checking: t("check.started", { total: rows.length }),
+    completed: t("check.completed", { total: rows.length, failed: summarizeRows(rows).failed }),
+    failed: "",
+    interrupted: "",
+  }[state.phase];
+
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-4">
       <RemittanceUpload limits={limits} onReady={handleReady} onReset={handleReset} />
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
 
       {selection && (
         <section aria-labelledby={headingId} className="flex min-h-0 w-full flex-1 flex-col gap-4">
@@ -95,7 +110,7 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
               {t("check.heading")}
             </h2>
             <Button
-              disabled={isChecking}
+              disabled={isChecking || state.phase === "idle"}
               focusableWhenDisabled
               onClick={() => {
                 void check(selection);
@@ -104,11 +119,7 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
               {actionLabel}
             </Button>
           </div>
-          <RemittanceResults
-            rows={deriveRows(selection.receivables, state)}
-            lines={selection.lines}
-            state={state}
-          />
+          <RemittanceResults rows={rows} lines={selection.lines} state={state} />
         </section>
       )}
     </div>

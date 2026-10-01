@@ -23,11 +23,6 @@ async function chooseRemittance(page: Page) {
   });
 }
 
-async function checkRemittance(page: Page) {
-  await chooseRemittance(page);
-  await page.getByRole("button", { name: "Consultar situações" }).click();
-}
-
 function pagination(page: Page) {
   return resultsSection(page).getByRole("navigation", { name: "Páginas dos resultados" });
 }
@@ -55,7 +50,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("pages through the results and keeps the focus on the controls", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
 
     await expect(pagination(page)).toContainText("1–25 de 30");
     await expect(pagination(page).getByRole("status")).toHaveText("Página 1 de 2");
@@ -75,7 +70,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("filters by status from the summary and returns to the first page", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await nextPage(page).click();
 
     const denied = statusFilter(page, /^Denegada: 3$/);
@@ -101,7 +96,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("returns to the first page when a filter still spans several pages", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await pagination(page).getByLabel("Títulos por página").selectOption("10");
     const next = nextPage(page);
     await next.click();
@@ -119,7 +114,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("starts again at the first page when the check is repeated", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await pagination(page).getByLabel("Títulos por página").selectOption("10");
     await statusFilter(page, /^Autorizada: 15$/).click();
     await nextPage(page).click();
@@ -133,7 +128,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("searches by any part of the key, ignoring separators", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     const target = remittance.receivables[16]?.key ?? "";
     const spaced = target.replace(/(\d{4})(?=\d)/g, "$1 ");
 
@@ -164,7 +159,7 @@ test.describe("results list (pt-BR)", () => {
     await page.route("**/api/remittances", async (route) => {
       await fulfillStream(bodies[attempts++] ?? "")(route);
     });
-    await checkRemittance(page);
+    await chooseRemittance(page);
 
     const notChecked = statusFilter(page, /^Não consultado: 27$/);
     await notChecked.click();
@@ -200,7 +195,7 @@ test.describe("results list sorting (pt-BR)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await expect(pagination(page)).toContainText("1–25 de 30");
   });
 
@@ -262,7 +257,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await expect(pagination(page)).toContainText("1–25 de 30");
 
     expect(await pageOverflow(page)).toBe(0);
@@ -284,6 +279,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
 
   test("shrinks the file picker once the file is ready", async ({ page }) => {
     await page.goto("/");
+    await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
     const picker = page.locator("label").filter({ has: page.locator('input[type="file"]') });
     expect((await picker.boundingBox())?.height ?? 0).toBeGreaterThan(100);
 
@@ -325,7 +321,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
       "**/api/remittances",
       fulfillStream(interruptedStream(remittance.receivables, 20)),
     );
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await expect(resultsSection(page).getByRole("alert")).toBeVisible();
 
     const region = resultsSection(page).getByRole("region", { name: "Lista de títulos" });
@@ -341,7 +337,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     await page.setViewportSize({ width: 1280, height: 560 });
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await checkRemittance(page);
+    await chooseRemittance(page);
     await expect(pagination(page)).toContainText("1–25 de 30");
 
     expect(await pageOverflow(page)).toBeGreaterThan(0);
@@ -356,7 +352,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       await page.goto("/");
       await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-      await checkRemittance(page);
+      await chooseRemittance(page);
       await statusFilter(page, /^Autorizada: 15$/).click();
       await searchBox(page).fill("0");
       await pagination(page).getByLabel("Títulos por página").selectOption("10");

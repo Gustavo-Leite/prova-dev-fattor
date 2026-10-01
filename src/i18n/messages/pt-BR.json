@@ -14,14 +14,13 @@
       "attachAnother": "Anexar outro arquivo",
       "hint": "CNAB 444 (.rem ou .txt), até {maxKilobytes} KB e {maxReceivables} títulos",
       "reading": "Lendo {fileName}…",
-      "ready": "{count, plural, one {# título pronto} other {# títulos prontos}} para consulta em {fileName}.",
+      "ready": "{count, plural, one {# título lido} other {# títulos lidos}} em {fileName}.",
       "invalidCheckDigits": "{count, plural, one {# chave tem} other {# chaves têm}} dígito verificador inválido; a consulta é feita mesmo assim.",
       "rejectedFile": "Arquivo: {fileName}",
       "truncated": "Há mais problemas além destes."
     },
     "check": {
       "heading": "Situação das notas",
-      "submit": "Consultar situações",
       "checking": "Consultando…",
       "again": "Consultar de novo",
       "retry": "Tentar de novo",

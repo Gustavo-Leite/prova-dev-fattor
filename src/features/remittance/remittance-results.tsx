@@ -101,15 +101,6 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
     setPageIndex(0);
   };
 
-  const announcement = {
-    idle: "",
-    requestFailed: "",
-    checking: t("check.started", { total }),
-    completed: t("check.completed", { total, failed: summary.failed }),
-    failed: "",
-    interrupted: "",
-  }[state.phase];
-
   const filterAnnouncement =
     hasRows && hasFilters && !isChecking
       ? t("filters.matches", { count: visible.filteredCount })
@@ -122,9 +113,6 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <p role="status" className="sr-only">
-        {announcement}
-      </p>
       <p role="status" className="sr-only">
         {filterAnnouncement}
       </p>
