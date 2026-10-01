@@ -262,6 +262,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
 
     expect(await pageOverflow(page)).toBe(0);
     const region = resultsSection(page).getByRole("region", { name: "Lista de títulos" });
+    await expect(region).toHaveCSS("scrollbar-width", "thin");
     const regionBox = await region.boundingBox();
     await region.evaluate((element) => {
       element.scrollTop = element.scrollHeight;

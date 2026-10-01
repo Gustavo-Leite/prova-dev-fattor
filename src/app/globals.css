@@ -122,6 +122,8 @@
 @layer base {
   * {
     @apply border-border outline-ring;
+    scrollbar-width: thin;
+    scrollbar-color: var(--input) transparent;
   }
   html {
     @apply font-sans;
