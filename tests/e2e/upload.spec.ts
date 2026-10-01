@@ -64,7 +64,7 @@ test.describe("remittance upload (pt-BR)", () => {
       await expect(status).toContainText("10 títulos prontos para consulta em meu_cnab.rem.");
       await expect(status).toContainText("7 chaves têm dígito verificador inválido");
       await expect(uploadAlert(page)).toHaveCount(0);
-      await expect(page.getByText("Escolher outro arquivo")).toBeVisible();
+      await expect(page.getByText("Anexar outro arquivo")).toBeVisible();
     });
 
     test("lists the layout problems of an invalid file", async ({ page }) => {

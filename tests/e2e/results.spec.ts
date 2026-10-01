@@ -292,7 +292,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     await expect
       .poll(async () => (await picker.boundingBox())?.height ?? Number.POSITIVE_INFINITY)
       .toBeLessThan(48);
-    await expect(picker).toContainText("Escolher outro arquivo");
+    await expect(picker).toContainText("Anexar outro arquivo");
   });
 
   test("keeps a long file error readable", async ({ page }) => {

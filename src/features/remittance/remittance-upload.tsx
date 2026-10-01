@@ -174,7 +174,7 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
         )}
       >
         <span className="font-medium">
-          {hasFile ? t("upload.chooseAnother") : t("upload.instructions")}
+          {hasFile ? t("upload.attachAnother") : t("upload.instructions")}
         </span>
         <span id={hintId} className={cn("text-sm text-muted-foreground", isCompact && "sr-only")}>
           {t("upload.hint", {

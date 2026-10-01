@@ -10,8 +10,8 @@
   "remittance": {
     "upload": {
       "heading": "Remittance file",
-      "instructions": "Drag the remittance file here or click to choose it",
-      "chooseAnother": "Choose another file",
+      "instructions": "Drag the remittance file here or click to attach it",
+      "attachAnother": "Attach another file",
       "hint": "CNAB 444 (.rem or .txt), up to {maxKilobytes} KB and {maxReceivables} receivables",
       "reading": "Reading {fileName}…",
       "ready": "{count, plural, one {# receivable} other {# receivables}} ready to check in {fileName}.",
@@ -127,7 +127,7 @@
       "TOO_MANY_RECEIVABLES": "The file has {actual} receivables; the limit is {max} per upload.",
       "FILE_TOO_LARGE": "The file is larger than {maxKilobytes} KB.",
       "MULTIPLE_FILES": "Upload one file at a time.",
-      "UNREADABLE_FILE": "The file could not be read. It may be a folder or it may have been moved; choose it again."
+      "UNREADABLE_FILE": "The file could not be read. It may be a folder or it may have been moved; attach it again."
     },
     "issues": {
       "EMPTY_FILE": "The file is empty.",

@@ -10,8 +10,8 @@
   "remittance": {
     "upload": {
       "heading": "Arquivo de remessa",
-      "instructions": "Arraste o arquivo de remessa aqui ou clique para escolher",
-      "chooseAnother": "Escolher outro arquivo",
+      "instructions": "Arraste o arquivo de remessa aqui ou clique para anexar",
+      "attachAnother": "Anexar outro arquivo",
       "hint": "CNAB 444 (.rem ou .txt), até {maxKilobytes} KB e {maxReceivables} títulos",
       "reading": "Lendo {fileName}…",
       "ready": "{count, plural, one {# título pronto} other {# títulos prontos}} para consulta em {fileName}.",
@@ -127,7 +127,7 @@
       "TOO_MANY_RECEIVABLES": "O arquivo tem {actual} títulos; o limite é {max} por envio.",
       "FILE_TOO_LARGE": "O arquivo passa de {maxKilobytes} KB.",
       "MULTIPLE_FILES": "Envie um arquivo por vez.",
-      "UNREADABLE_FILE": "Não foi possível ler o arquivo. Ele pode ser uma pasta ou ter sido movido; escolha-o de novo."
+      "UNREADABLE_FILE": "Não foi possível ler o arquivo. Ele pode ser uma pasta ou ter sido movido; anexe-o de novo."
     },
     "issues": {
       "EMPTY_FILE": "O arquivo está vazio.",
