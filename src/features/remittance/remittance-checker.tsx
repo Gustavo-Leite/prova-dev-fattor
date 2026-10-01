@@ -87,11 +87,13 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
   }[state.phase];
 
   const rows = selection ? deriveRows(selection.receivables, state) : [];
+  const summary = summarizeRows(rows);
+  const hasRows = state.phase !== "idle" && state.phase !== "requestFailed";
   const announcement = {
     idle: "",
     requestFailed: "",
     checking: t("check.started", { total: rows.length }),
-    completed: t("check.completed", { total: rows.length, failed: summarizeRows(rows).failed }),
+    completed: t("check.completed", { total: rows.length, failed: summary.failed }),
     failed: "",
     interrupted: "",
   }[state.phase];
@@ -106,9 +108,16 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
       {selection && (
         <section aria-labelledby={headingId} className="flex min-h-0 w-full flex-1 flex-col gap-4">
           <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-            <h2 id={headingId} className="text-lg font-semibold">
-              {t("check.heading")}
-            </h2>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 id={headingId} className="text-lg font-semibold">
+                {t("check.heading")}
+              </h2>
+              {hasRows && (
+                <p className="text-sm text-muted-foreground">
+                  {t("check.progress", { done: rows.length - summary.pending, total: rows.length })}
+                </p>
+              )}
+            </div>
             <Button
               disabled={isChecking || state.phase === "idle"}
               focusableWhenDisabled

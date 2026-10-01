@@ -147,5 +147,25 @@
   },
   "footer": {
     "disclaimer": "Technical assessment project — not an official Fattor Crédito product."
+  },
+  "appBar": {
+    "name": "CNAB 444 Status",
+    "theme": {
+      "label": "Theme",
+      "system": "Follow the system theme",
+      "light": "Light theme",
+      "dark": "Dark theme"
+    },
+    "language": {
+      "label": "Language",
+      "shortNames": {
+        "pt-BR": "PT",
+        "en": "EN"
+      },
+      "names": {
+        "pt-BR": "Português",
+        "en": "English"
+      }
+    }
   }
 }

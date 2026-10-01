@@ -147,5 +147,25 @@
   },
   "footer": {
     "disclaimer": "Projeto de avaliação técnica — não é um produto oficial da Fattor Crédito."
+  },
+  "appBar": {
+    "name": "Status CNAB 444",
+    "theme": {
+      "label": "Tema",
+      "system": "Seguir o tema do sistema",
+      "light": "Tema claro",
+      "dark": "Tema escuro"
+    },
+    "language": {
+      "label": "Idioma",
+      "shortNames": {
+        "pt-BR": "PT",
+        "en": "EN"
+      },
+      "names": {
+        "pt-BR": "Português",
+        "en": "English"
+      }
+    }
   }
 }

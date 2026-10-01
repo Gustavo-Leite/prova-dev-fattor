@@ -127,6 +127,7 @@ test.describe("remittance upload (pt-BR)", () => {
     });
 
     test("can be reached from the keyboard with a visible focus", async ({ page }) => {
+      await page.getByRole("banner").getByRole("button").last().focus();
       await page.keyboard.press("Tab");
       await expect(fileInput(page)).toBeFocused();
 

@@ -58,7 +58,6 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
   const [sort, setSort] = useState<RowSort>(defaultSort);
 
   const summary = summarizeRows(rows);
-  const total = rows.length;
   const isChecking = state.phase === "checking";
   const hasRows = state.phase !== "idle" && state.phase !== "requestFailed";
   const hasFilters = tones.size > 0 || query !== "";
@@ -144,9 +143,6 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
 
       {hasRows && (
         <>
-          <p className="text-sm text-muted-foreground">
-            {t("check.progress", { done: total - summary.pending, total })}
-          </p>
           <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-0 md:rounded-lg md:border md:bg-card md:has-[[data-slot=table-container]:focus-visible]:outline-2 md:has-[[data-slot=table-container]:focus-visible]:outline-offset-2 md:has-[[data-slot=table-container]:focus-visible]:outline-ring">
             <ResultsToolbar
               summary={summary}
