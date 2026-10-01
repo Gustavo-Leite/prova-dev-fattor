@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { getServerEnv } from "@/infra/env";
 import { buildContentSecurityPolicy } from "@/lib/content-security-policy";
-import { readSessionToken, sessionCookieName } from "@/lib/session-cookie";
+import { openSessionCookie, sessionCookieName } from "@/lib/session-cookie";
 
 const contentSecurityPolicyHeader = "Content-Security-Policy";
 
@@ -10,18 +11,22 @@ const protectedPaths: readonly string[] = ["/"];
 
 const signInPath = "/entrar";
 
-function hasSession(request: NextRequest): boolean {
-  return readSessionToken(request.cookies.get(sessionCookieName)?.value) !== null;
+async function hasSession(request: NextRequest): Promise<boolean> {
+  const token = await openSessionCookie(
+    request.cookies.get(sessionCookieName)?.value,
+    getServerEnv().sessionSecret,
+  );
+  return token !== null;
 }
 
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64");
   const policy = buildContentSecurityPolicy({
     nonce,
     isDevelopment: process.env.NODE_ENV === "development",
   });
 
-  if (protectedPaths.includes(request.nextUrl.pathname) && !hasSession(request)) {
+  if (protectedPaths.includes(request.nextUrl.pathname) && !(await hasSession(request))) {
     const redirect = NextResponse.redirect(new URL(signInPath, request.url), 307);
     redirect.headers.set(contentSecurityPolicyHeader, policy);
     return redirect;

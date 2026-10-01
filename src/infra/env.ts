@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export const maxSignInEmailLength = 254;
 export const maxSignInPasswordLength = 256;
+export const minSessionSecretLength = 32;
 
 const serverEnvSchema = z
   .object({
@@ -26,8 +27,10 @@ const serverEnvSchema = z
       .pipe(z.email().max(maxSignInEmailLength))
       .transform((value) => value.toLowerCase()),
     SIGN_IN_PASSWORD: z.string().min(1).max(maxSignInPasswordLength),
+    SESSION_SECRET: z.string().min(minSessionSecretLength),
   })
   .transform((env) => ({
+    sessionSecret: env.SESSION_SECRET,
     fattorApi: {
       baseUrl: env.FATTOR_API_BASE_URL,
     },

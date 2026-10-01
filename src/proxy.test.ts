@@ -1,11 +1,33 @@
+import { createHmac } from "node:crypto";
+
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { config, proxy } from "@/proxy";
 
+const { proxySessionSecret } = vi.hoisted(() => ({
+  proxySessionSecret: "proxy-test-secret-proxy-test-secret",
+}));
+
+vi.mock("@/infra/env", () => ({
+  getServerEnv: () => ({ sessionSecret: proxySessionSecret }),
+}));
+
 const nonceSource = /'nonce-([A-Za-z0-9+/=]+)'/;
-const sessionCookie = "session=user-session-token";
+const sessionToken = "user-session-token";
+
+const farFutureExpiry = 4_102_444_800;
+const pastExpiry = 1_000_000_000;
+
+function sealWith(secret: string, { token = sessionToken, expiry = farFutureExpiry } = {}): string {
+  const signature = createHmac("sha256", secret)
+    .update(`${String(expiry)}.${token}`)
+    .digest("base64url");
+  return `${token}.${String(expiry)}.${signature}`;
+}
+
+const sessionCookie = `session=${sealWith(proxySessionSecret)}`;
 
 function nonceOf(policy: string | null): string | undefined {
   return policy?.match(nonceSource)?.[1];
@@ -20,6 +42,10 @@ function signedInRequest(
   { headers = {}, method }: { headers?: Record<string, string>; method?: string } = {},
 ): NextRequest {
   return new NextRequest(url, { method, headers: { cookie: sessionCookie, ...headers } });
+}
+
+function requestWithSession(value: string): NextRequest {
+  return new NextRequest("http://localhost/", { headers: { cookie: `session=${value}` } });
 }
 
 describe("proxy matcher", () => {
@@ -55,8 +81,8 @@ describe("proxy matcher", () => {
 });
 
 describe("proxy", () => {
-  it("sends the same nonce-based policy to the page and to the browser", () => {
-    const response = proxy(signedInRequest());
+  it("sends the same nonce-based policy to the page and to the browser", async () => {
+    const response = await proxy(signedInRequest());
 
     const policy = response.headers.get("content-security-policy");
     expect(nonceOf(policy)).toBeDefined();
@@ -64,8 +90,8 @@ describe("proxy", () => {
     expect(forwardedPolicyOf(response)).toBe(policy);
   });
 
-  it("keeps the strict policy outside development", () => {
-    const response = proxy(signedInRequest());
+  it("keeps the strict policy outside development", async () => {
+    const response = await proxy(signedInRequest());
 
     expect(response.headers.get("content-security-policy")).not.toContain("'unsafe-eval'");
     expect(response.headers.get("content-security-policy")).toMatch(
@@ -73,8 +99,8 @@ describe("proxy", () => {
     );
   });
 
-  it("forwards the client's own headers to the route", () => {
-    const response = proxy(
+  it("forwards the client's own headers to the route", async () => {
+    const response = await proxy(
       new NextRequest("http://localhost/", {
         headers: { cookie: `theme=dark; ${sessionCookie}` },
       }),
@@ -85,18 +111,18 @@ describe("proxy", () => {
     );
   });
 
-  it("draws a new nonce for every request", () => {
-    const first = proxy(signedInRequest());
-    const second = proxy(signedInRequest());
+  it("draws a new nonce for every request", async () => {
+    const first = await proxy(signedInRequest());
+    const second = await proxy(signedInRequest());
 
     expect(nonceOf(first.headers.get("content-security-policy"))).not.toBe(
       nonceOf(second.headers.get("content-security-policy")),
     );
   });
 
-  it("overwrites a policy sent by the client", () => {
+  it("overwrites a policy sent by the client", async () => {
     const forged = "script-src 'nonce-forged'";
-    const response = proxy(
+    const response = await proxy(
       signedInRequest("http://localhost/", { headers: { "content-security-policy": forged } }),
     );
 
@@ -105,8 +131,8 @@ describe("proxy", () => {
     expect(forwardedPolicyOf(response)).toBe(response.headers.get("content-security-policy"));
   });
 
-  it("continues to the route without a body of its own", () => {
-    const response = proxy(signedInRequest("http://localhost/", { method: "POST" }));
+  it("continues to the route without a body of its own", async () => {
+    const response = await proxy(signedInRequest("http://localhost/", { method: "POST" }));
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
     expect(response.body).toBeNull();
@@ -116,24 +142,35 @@ describe("proxy", () => {
 describe("proxy session guard", () => {
   it.each([
     ["without a session cookie", new NextRequest("http://localhost/")],
+    ["with a malformed session cookie", requestWithSession("a b")],
+    ["with an empty session cookie", requestWithSession("")],
+    ["with a raw token that was never sealed", requestWithSession(sessionToken)],
     [
-      "with a malformed session cookie",
-      new NextRequest("http://localhost/", { headers: { cookie: "session=a b" } }),
+      "with a token sealed with another secret",
+      requestWithSession(sealWith("another-secret-another-secret-another")),
     ],
     [
-      "with an empty session cookie",
-      new NextRequest("http://localhost/", { headers: { cookie: "session=" } }),
+      "with a seal moved to another token",
+      requestWithSession(sealWith(proxySessionSecret).replace(sessionToken, "forged-token")),
     ],
-  ])("sends the home page to the sign-in page %s", (_description, request) => {
-    const response = proxy(request);
+    [
+      "with an expired seal",
+      requestWithSession(sealWith(proxySessionSecret, { expiry: pastExpiry })),
+    ],
+    [
+      "with a forged signature",
+      requestWithSession(`${sessionToken}.${String(farFutureExpiry)}.${"A".repeat(43)}`),
+    ],
+  ])("sends the home page to the sign-in page %s", async (_description, request) => {
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost/entrar");
     expect(response.headers.get("x-middleware-next")).toBeNull();
   });
 
-  it("redirects a prefetch of the home page without a session", () => {
-    const response = proxy(
+  it("redirects a prefetch of the home page without a session", async () => {
+    const response = await proxy(
       new NextRequest("http://localhost/", {
         headers: { rsc: "1", "next-router-prefetch": "1" },
       }),
@@ -143,14 +180,14 @@ describe("proxy session guard", () => {
     expect(response.headers.get("location")).toBe("http://localhost/entrar");
   });
 
-  it("keeps the content security policy on the redirect", () => {
-    const response = proxy(new NextRequest("http://localhost/"));
+  it("keeps the content security policy on the redirect", async () => {
+    const response = await proxy(new NextRequest("http://localhost/"));
 
     expect(nonceOf(response.headers.get("content-security-policy"))).toBeDefined();
   });
 
-  it("opens the home page with a well-formed session cookie", () => {
-    const response = proxy(signedInRequest());
+  it("opens the home page with a sealed session cookie", async () => {
+    const response = await proxy(signedInRequest());
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -158,16 +195,16 @@ describe("proxy session guard", () => {
 
   it.each(["/cnab-444", "/entrar", "/login", "/this-page-does-not-exist"])(
     "lets %s through without a session",
-    (path) => {
-      const response = proxy(new NextRequest(new URL(path, "http://localhost")));
+    async (path) => {
+      const response = await proxy(new NextRequest(new URL(path, "http://localhost")));
 
       expect(response.headers.get("location")).toBeNull();
       expect(response.headers.get("x-middleware-next")).toBe("1");
     },
   );
 
-  it("guards the home page even with a query string", () => {
-    const response = proxy(new NextRequest("http://localhost/?file=x"));
+  it("guards the home page even with a query string", async () => {
+    const response = await proxy(new NextRequest("http://localhost/?file=x"));
 
     expect(response.headers.get("location")).toBe("http://localhost/entrar");
   });

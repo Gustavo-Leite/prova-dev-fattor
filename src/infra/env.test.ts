@@ -4,6 +4,7 @@ import {
   InvalidServerEnvError,
   maxSignInPasswordLength,
   maxSignInEmailLength,
+  minSessionSecretLength,
   parseServerEnv,
 } from "@/infra/env";
 
@@ -11,11 +12,13 @@ const validSource = {
   FATTOR_API_BASE_URL: "https://api.example.com/public/prova-dev",
   SIGN_IN_EMAIL: "operator@example.test",
   SIGN_IN_PASSWORD: "test-password",
+  SESSION_SECRET: "env-test-session-secret-env-test-session",
 };
 
 describe("parseServerEnv", () => {
   it("maps valid variables to the server env shape", () => {
     expect(parseServerEnv(validSource)).toEqual({
+      sessionSecret: "env-test-session-secret-env-test-session",
       fattorApi: {
         baseUrl: "https://api.example.com/public/prova-dev",
       },
@@ -91,6 +94,40 @@ describe("parseServerEnv", () => {
     expect(() => parseServerEnv({ ...validSource, SIGN_IN_PASSWORD: `${atLimit}p` })).toThrow(
       "SIGN_IN_PASSWORD",
     );
+  });
+
+  it("accepts a session secret at the minimum length and rejects a shorter one", () => {
+    const atMinimum = "s".repeat(minSessionSecretLength);
+
+    expect(minSessionSecretLength).toBe(32);
+    expect(parseServerEnv({ ...validSource, SESSION_SECRET: atMinimum }).sessionSecret).toBe(
+      atMinimum,
+    );
+    expect(() => parseServerEnv({ ...validSource, SESSION_SECRET: atMinimum.slice(1) })).toThrow(
+      "SESSION_SECRET",
+    );
+  });
+
+  it("rejects the empty session secret copied from .env.example", () => {
+    expect(() => parseServerEnv({ ...validSource, SESSION_SECRET: "" })).toThrow(
+      InvalidServerEnvError,
+    );
+  });
+
+  it("never includes the session secret in the error message", () => {
+    const shortSecret = "short-session-secret";
+    const source = { ...validSource, SESSION_SECRET: shortSecret };
+
+    let thrown: unknown;
+    try {
+      parseServerEnv(source);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(InvalidServerEnvError);
+    expect(String(thrown)).toContain("SESSION_SECRET");
+    expect(String(thrown)).not.toContain(shortSecret);
   });
 
   it("removes trailing slashes from the base URL", () => {

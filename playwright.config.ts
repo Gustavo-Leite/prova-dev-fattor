@@ -1,4 +1,14 @@
+import { createHmac } from "node:crypto";
+
 import { defineConfig, devices } from "@playwright/test";
+
+const e2eSessionSecret = "e2e-session-secret-e2e-session-secret";
+export const e2eSessionToken = "e2e-session";
+const e2eSessionExpiry = "4102444800";
+const e2eSessionSignature = createHmac("sha256", e2eSessionSecret)
+  .update(`${e2eSessionExpiry}.${e2eSessionToken}`)
+  .digest("base64url");
+const e2eSealedSession = `${e2eSessionToken}.${e2eSessionExpiry}.${e2eSessionSignature}`;
 
 const port = 3100;
 const baseURL = `http://localhost:${port}`;
@@ -19,7 +29,7 @@ export default defineConfig({
       cookies: [
         {
           name: "session",
-          value: "e2e-session",
+          value: e2eSealedSession,
           domain: "localhost",
           path: "/",
           httpOnly: true,
@@ -41,6 +51,7 @@ export default defineConfig({
       FATTOR_API_BASE_URL: "https://127.0.0.1:9/public/prova-dev",
       SIGN_IN_EMAIL: "e2e@example.test",
       SIGN_IN_PASSWORD: "e2e-password",
+      SESSION_SECRET: e2eSessionSecret,
     },
     url: baseURL,
     reuseExistingServer: false,

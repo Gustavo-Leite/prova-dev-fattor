@@ -3,6 +3,8 @@ import path from "node:path";
 
 import { expect, test } from "@playwright/test";
 
+import { e2eSessionToken } from "../../playwright.config";
+
 const sampleFile = {
   name: "meu_cnab.rem",
   mimeType: "text/plain",
@@ -32,6 +34,41 @@ test.describe("without a session", () => {
 
     expect(response.status()).toBe(401);
     expect(response.headers()["cache-control"]).toBe("no-store");
+    expect(await response.json()).toEqual({ code: "SESSION_EXPIRED" });
+  });
+});
+
+test.describe("with a raw token that was never sealed", () => {
+  test.use({
+    storageState: {
+      cookies: [
+        {
+          name: "session",
+          value: e2eSessionToken,
+          domain: "localhost",
+          path: "/",
+          httpOnly: true,
+          secure: false,
+          sameSite: "Lax",
+          expires: -1,
+        },
+      ],
+      origins: [],
+    },
+  });
+
+  test("sends the home page to the sign-in page", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page).toHaveURL(/\/entrar$/);
+  });
+
+  test("refuses an upload", async ({ context }) => {
+    const response = await context.request.post("/api/remittances", {
+      multipart: { file: sampleFile },
+    });
+
+    expect(response.status()).toBe(401);
     expect(await response.json()).toEqual({ code: "SESSION_EXPIRED" });
   });
 });

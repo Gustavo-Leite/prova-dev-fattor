@@ -14,11 +14,19 @@ import {
 } from "@/app/api/remittances/handle-remittance-upload";
 import { POST } from "@/app/api/remittances/route";
 import { createFattorStatusGateway } from "@/infra/fattor/fattor-status-gateway";
+import { currentUnixSeconds, sealSessionToken } from "@/lib/session-cookie";
 
 const routeBaseUrl = "https://fattor.test/public/prova-dev";
 
+const { routeSessionSecret } = vi.hoisted(() => ({
+  routeSessionSecret: "route-test-secret-route-test-secret",
+}));
+
 vi.mock("@/infra/env", () => ({
-  getServerEnv: () => ({ fattorApi: { baseUrl: "https://fattor.test/public/prova-dev" } }),
+  getServerEnv: () => ({
+    sessionSecret: routeSessionSecret,
+    fattorApi: { baseUrl: "https://fattor.test/public/prova-dev" },
+  }),
 }));
 
 vi.mock("@/infra/fattor/fattor-status-gateway", () => ({
@@ -29,7 +37,16 @@ vi.mock("@/infra/fattor/fattor-status-gateway", () => ({
 
 const sampleFilePath = path.join(import.meta.dirname, "../../../../_prova/meu_cnab.rem");
 const endpoint = "http://localhost/api/remittances";
-const sessionToken = "user-session-token";
+const openedSessionPrefix = "opened:";
+const sessionCookie = `${openedSessionPrefix}user-session-token`;
+
+function readSession(value: string | undefined): Promise<string | null> {
+  return Promise.resolve(
+    value?.startsWith(openedSessionPrefix) === true
+      ? value.slice(openedSessionPrefix.length)
+      : null,
+  );
+}
 
 function trackingGateway(
   findStatus: InvoiceStatusGateway["findStatus"] = () => Promise.resolve("authorized"),
@@ -43,6 +60,7 @@ function trackingGateway(
     },
   };
   return {
+    readSession,
     getGateway: (token: string) => {
       tokens.push(token);
       return gateway;
@@ -55,7 +73,7 @@ function trackingGateway(
 
 function uploadHandler(dependencies: RemittanceUploadDependencies) {
   const handleRemittanceUpload = createRemittanceUploadHandler(dependencies);
-  return (request: Request) => handleRemittanceUpload(request, sessionToken);
+  return (request: Request) => handleRemittanceUpload(request, sessionCookie);
 }
 
 async function uploadRequest(
@@ -202,10 +220,11 @@ describe("remittance upload request checks", () => {
     ["missing", undefined],
     ["empty", ""],
     ["malformed", "\n"],
-  ])("asks to sign in again when the session cookie is %s", async (_description, token) => {
+    ["a session that does not open", "user-session-token"],
+  ])("asks to sign in again when the session cookie is %s", async (_description, value) => {
     const tracker = trackingGateway();
     const request = await uploadRequest(sampleFile);
-    const response = await createRemittanceUploadHandler(tracker)(request, token);
+    const response = await createRemittanceUploadHandler(tracker)(request, value);
     expect(response.status).toBe(401);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ code: "SESSION_EXPIRED" });
@@ -213,20 +232,25 @@ describe("remittance upload request checks", () => {
     expect(tracker.created()).toBe(0);
   });
 
-  it("checks the statuses with the token of the session cookie", async () => {
+  it("checks the statuses with the token opened from the session cookie", async () => {
     const tracker = trackingGateway();
     const response = await createRemittanceUploadHandler(tracker)(
       await uploadRequest(sampleFile),
-      "another-session-token",
+      `${openedSessionPrefix}another-session-token`,
     );
     expect(response.status).toBe(200);
     await response.text();
     expect(tracker.tokens).toEqual(["another-session-token"]);
   });
 
-  it("wires the route to a gateway built with the session cookie and the API base URL", async () => {
+  it("wires the route to a gateway built with the sealed session and the API base URL", async () => {
+    const sealed = await sealSessionToken(
+      "route-session-token",
+      routeSessionSecret,
+      currentUnixSeconds() + 60,
+    );
     const request = await uploadRequest(sampleFile, {
-      headers: { cookie: "session=route-session-token" },
+      headers: { cookie: `session=${sealed}` },
     });
     const response = await POST(new NextRequest(request));
     expect(response.status).toBe(200);
@@ -235,6 +259,32 @@ describe("remittance upload request checks", () => {
       baseUrl: routeBaseUrl,
       token: "route-session-token",
     });
+  });
+
+  it("refuses at the route a session token that was never sealed", async () => {
+    vi.mocked(createFattorStatusGateway).mockClear();
+    const request = await uploadRequest(sampleFile, {
+      headers: { cookie: "session=route-session-token" },
+    });
+    const response = await POST(new NextRequest(request));
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ code: "SESSION_EXPIRED" });
+    expect(createFattorStatusGateway).not.toHaveBeenCalled();
+  });
+
+  it("refuses at the route a sealed session past its expiry", async () => {
+    vi.mocked(createFattorStatusGateway).mockClear();
+    const sealed = await sealSessionToken(
+      "route-session-token",
+      routeSessionSecret,
+      currentUnixSeconds(),
+    );
+    const request = await uploadRequest(sampleFile, {
+      headers: { cookie: `session=${sealed}` },
+    });
+    const response = await POST(new NextRequest(request));
+    expect(response.status).toBe(401);
+    expect(createFattorStatusGateway).not.toHaveBeenCalled();
   });
 
   it.each([

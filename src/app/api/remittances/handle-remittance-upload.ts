@@ -8,12 +8,12 @@ import {
   defaultRemittanceCheckPolicy,
 } from "@/application/remittance/check-remittance";
 import type { InvoiceStatusGateway } from "@/application/remittance/invoice-status-gateway";
-import { readSessionToken } from "@/lib/session-cookie";
 
 export const maxUploadBytes = 128 * 1024;
 export const multipartOverheadBytes = 16 * 1024;
 
 export interface RemittanceUploadDependencies {
+  readonly readSession: (sessionCookie: string | undefined) => Promise<string | null>;
   readonly getGateway: (token: string) => InvoiceStatusGateway;
   readonly maxUploadBytes?: number;
   readonly policy?: RemittanceCheckPolicy;
@@ -91,12 +91,12 @@ export function createRemittanceUploadHandler(dependencies: RemittanceUploadDepe
 
   return async function handleRemittanceUpload(
     request: Request,
-    sessionToken: string | undefined,
+    sessionCookie: string | undefined,
   ): Promise<Response> {
     if (isCrossSiteRequest(request.headers)) {
       return errorResponse(403, { code: "CROSS_SITE_REQUEST" });
     }
-    const token = readSessionToken(sessionToken);
+    const token = await dependencies.readSession(sessionCookie);
     if (token === null) {
       return errorResponse(401, { code: "SESSION_EXPIRED" });
     }
