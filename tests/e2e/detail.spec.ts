@@ -67,6 +67,14 @@ test.describe("receivable detail (pt-BR)", () => {
     expect(text).toHaveLength(444);
     expect(text?.startsWith("1")).toBe(true);
     expect(text?.endsWith(firstKey)).toBe(true);
+    const overflowingSegments = await record.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return [...element.querySelectorAll("span")]
+        .flatMap((segment) => [...segment.getClientRects()])
+        .filter((fragment) => fragment.right > box.right + 0.5 || fragment.left < box.left - 0.5)
+        .length;
+    });
+    expect(overflowingSegments).toBe(0);
     await expect(dialog).toContainText(
       "Dados do banco, mostrados sem interpretação posições 2–400",
     );

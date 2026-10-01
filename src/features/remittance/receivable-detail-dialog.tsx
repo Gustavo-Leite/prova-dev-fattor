@@ -121,7 +121,7 @@ function ReceivableDetail({ row, line, statusLabel }: ReceivableDetailProps) {
         <pre
           role="img"
           aria-label={t("xrayHeading")}
-          className="rounded-lg border p-2 font-mono text-[0.6875rem] leading-5 break-all whitespace-pre-wrap"
+          className="rounded-lg border p-2 font-mono text-[0.6875rem] leading-5 break-all whitespace-break-spaces"
         >
           <span className="bg-primary text-primary-foreground">
             {readField(line, recordTypePosition)}
