@@ -131,10 +131,10 @@ describe("deriveRows and summarizeRows", () => {
     );
     const rows = deriveRows(receivables, state);
 
-    expect(rows.map((row) => [row.lineNumber, row.state])).toEqual([
-      [2, { kind: "pending" }],
-      [3, { kind: "failed", reason: "UPSTREAM_TIMEOUT" }],
-      [4, { kind: "status", status: "cancelled" }],
+    expect(rows.map((row) => [row.ordinal, row.lineNumber, row.state])).toEqual([
+      [1, 2, { kind: "pending" }],
+      [2, 3, { kind: "failed", reason: "UPSTREAM_TIMEOUT" }],
+      [3, 4, { kind: "status", status: "cancelled" }],
     ]);
     expect(rows[1]?.hasValidCheckDigit).toBe(false);
     expect(summarizeRows(rows)).toEqual({

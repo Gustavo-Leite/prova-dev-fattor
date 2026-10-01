@@ -16,6 +16,7 @@ import {
 function row(lineNumber: number, state: RowState = { kind: "pending" }): ReceivableRow {
   return {
     lineNumber,
+    ordinal: lineNumber - 1,
     invoiceAccessKey: `3524${String(lineNumber).padStart(40, "0")}`,
     hasValidCheckDigit: true,
     state,

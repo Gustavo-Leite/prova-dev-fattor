@@ -1,11 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import type { MouseEvent, RefObject } from "react";
+import { useId, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import type { DialogHandle } from "@/components/ui/dialog";
 import { createDialogHandle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Table,
@@ -16,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { RemittanceMessage } from "@/features/remittance/describe-remittance-issue";
 import { describeSubmitError } from "@/features/remittance/describe-remittance-issue";
 import type {
@@ -59,17 +61,6 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
     tone === "pending" && !isChecking ? t("statuses.notChecked") : t(`statuses.${tone}`);
   const rowLabel = (row: ReceivableRow) =>
     row.state.kind === "failed" ? t(`failureReasons.${row.state.reason}`) : toneLabel(toneOf(row));
-
-  const detailTrigger = (row: ReceivableRow) => (
-    <DialogTrigger
-      handle={detailHandle}
-      payload={row.lineNumber}
-      aria-label={t("detail.openLabel", { lineNumber: row.lineNumber })}
-      render={<Button variant="outline" size="sm" />}
-    >
-      {t("detail.open")}
-    </DialogTrigger>
-  );
 
   const toggleTone = (tone: RowTone) => {
     setTones((current) => {
@@ -182,24 +173,22 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
                   <TableCaption className="sr-only">{t("check.tableCaption")}</TableCaption>
                   <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_var(--border)]">
                     <TableRow>
-                      <TableHead className="w-16">{t("check.lineColumn")}</TableHead>
+                      <TableHead className="w-28">{t("check.ordinalColumn")}</TableHead>
                       <TableHead>{t("check.keyColumn")}</TableHead>
                       <TableHead>{t("check.statusColumn")}</TableHead>
-                      <TableHead>
+                      <TableHead className="w-12">
                         <span className="sr-only">{t("detail.column")}</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {visible.pageRows.map((row) => (
-                      <TableRow key={row.lineNumber}>
-                        <TableCell className="tabular-nums">{row.lineNumber}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.invoiceAccessKey}</TableCell>
-                        <TableCell>
-                          <StatusBadge tone={toneOf(row)} label={rowLabel(row)} />
-                        </TableCell>
-                        <TableCell className="text-right">{detailTrigger(row)}</TableCell>
-                      </TableRow>
+                      <ResultTableRow
+                        key={row.lineNumber}
+                        row={row}
+                        handle={detailHandle}
+                        statusLabel={rowLabel(row)}
+                      />
                     ))}
                   </TableBody>
                 </Table>
@@ -207,21 +196,12 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
 
               <ul className="flex flex-col gap-2 md:hidden">
                 {visible.pageRows.map((row) => (
-                  <li
+                  <ResultCard
                     key={row.lineNumber}
-                    className="flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium">
-                        {t("check.lineLabel", { lineNumber: row.lineNumber })}
-                      </span>
-                      <StatusBadge tone={toneOf(row)} label={rowLabel(row)} />
-                    </div>
-                    <span className="font-mono text-[0.6875rem] tracking-tight break-all text-muted-foreground">
-                      {row.invoiceAccessKey}
-                    </span>
-                    <div className="flex justify-end">{detailTrigger(row)}</div>
-                  </li>
+                    row={row}
+                    handle={detailHandle}
+                    statusLabel={rowLabel(row)}
+                  />
                 ))}
               </ul>
             </>
@@ -246,5 +226,153 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
         </>
       )}
     </div>
+  );
+}
+
+const interactiveSelector = "a, button, input, label, select, textarea, [role='button']";
+
+function openFromRow(event: MouseEvent<HTMLElement>, trigger: HTMLButtonElement | null) {
+  const { target } = event;
+  const interactive = target instanceof Element ? target.closest(interactiveSelector) : null;
+  if (interactive && !interactive.hasAttribute("data-opens-detail")) {
+    return;
+  }
+  if ((window.getSelection()?.toString() ?? "") !== "") {
+    return;
+  }
+  trigger?.click();
+}
+
+interface RowViewProps {
+  readonly row: ReceivableRow;
+  readonly handle: DialogHandle<number>;
+  readonly statusLabel: string;
+}
+
+interface DetailTriggerProps {
+  readonly row: ReceivableRow;
+  readonly handle: DialogHandle<number>;
+  readonly triggerRef: RefObject<HTMLButtonElement | null>;
+}
+
+function DetailTrigger({ row, handle, triggerRef }: DetailTriggerProps) {
+  const t = useTranslations("remittance.detail");
+  return (
+    <DialogTrigger
+      ref={triggerRef}
+      handle={handle}
+      payload={row.lineNumber}
+      className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground outline-none group-hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="size-4"
+      >
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+      <span className="sr-only">{t("openLabel", { ordinal: row.ordinal })}</span>
+    </DialogTrigger>
+  );
+}
+
+function InvalidCheckDigitHint() {
+  const t = useTranslations("remittance.check");
+  const hintId = useId();
+  return (
+    <Tooltip>
+      <span id={hintId} className="sr-only">
+        {t("invalidCheckDigitHint")}
+      </span>
+      <TooltipTrigger
+        data-opens-detail=""
+        aria-haspopup="dialog"
+        aria-label={t("invalidCheckDigit")}
+        aria-describedby={hintId}
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-status-denied outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-4"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4M12 16h.01" />
+        </svg>
+      </TooltipTrigger>
+      <TooltipContent>{t("invalidCheckDigitHint")}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ResultTableRow({ row, handle, statusLabel }: RowViewProps) {
+  const t = useTranslations("remittance.check");
+  const trigger = useRef<HTMLButtonElement>(null);
+  return (
+    <TableRow
+      className="group cursor-pointer hover:bg-muted hover:shadow-[inset_3px_0_0_var(--ring)] has-focus-visible:bg-muted has-focus-visible:shadow-[inset_3px_0_0_var(--ring)]"
+      onClick={(event) => {
+        openFromRow(event, trigger.current);
+      }}
+    >
+      <TableCell>
+        <span className="font-medium tabular-nums">{row.ordinal}</span>
+        <span className="block text-xs text-muted-foreground">
+          {t("fileLine", { lineNumber: row.lineNumber })}
+        </span>
+      </TableCell>
+      <TableCell>
+        <span className="inline-flex items-center gap-2">
+          <span className="font-mono text-xs">{row.invoiceAccessKey}</span>
+          {!row.hasValidCheckDigit && <InvalidCheckDigitHint />}
+        </span>
+      </TableCell>
+      <TableCell>
+        <StatusBadge tone={toneOf(row)} label={statusLabel} />
+      </TableCell>
+      <TableCell className="text-right">
+        <DetailTrigger row={row} handle={handle} triggerRef={trigger} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function ResultCard({ row, handle, statusLabel }: RowViewProps) {
+  const t = useTranslations("remittance.check");
+  const trigger = useRef<HTMLButtonElement>(null);
+  return (
+    <li
+      className="group flex cursor-pointer flex-col gap-2 rounded-lg border bg-card p-3 text-sm hover:border-ring hover:shadow-md has-focus-visible:border-ring motion-safe:transition motion-safe:hover:-translate-y-0.5"
+      onClick={(event) => {
+        openFromRow(event, trigger.current);
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium">{t("cardTitle", { ordinal: row.ordinal })}</span>
+        <span className="flex items-center gap-1">
+          <StatusBadge tone={toneOf(row)} label={statusLabel} />
+          <DetailTrigger row={row} handle={handle} triggerRef={trigger} />
+        </span>
+      </div>
+      <span className="inline-flex items-start gap-2">
+        <span className="font-mono text-[0.6875rem] tracking-tight break-all text-muted-foreground">
+          {row.invoiceAccessKey}
+        </span>
+        {!row.hasValidCheckDigit && <InvalidCheckDigitHint />}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        {t("fileLine", { lineNumber: row.lineNumber })}
+      </span>
+    </li>
   );
 }

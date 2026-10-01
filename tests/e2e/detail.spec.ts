@@ -18,6 +18,30 @@ function detailButton(page: Page, name: string) {
   return page.getByRole("button", { name, exact: true }).filter({ visible: true });
 }
 
+function visibleText(page: Page, text: string) {
+  return page.getByText(text, { exact: true }).filter({ visible: true });
+}
+
+function invalidDigitWarning(page: Page) {
+  return page
+    .getByRole("button", { name: "Dígito verificador inválido" })
+    .filter({ visible: true })
+    .first();
+}
+
+function afterTwoFrames(page: Page) {
+  return page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      }),
+  );
+}
+
 test.describe("receivable detail (pt-BR)", () => {
   test.use({ locale: "pt-BR" });
 
@@ -27,9 +51,9 @@ test.describe("receivable detail (pt-BR)", () => {
   });
 
   test("splits the access key and shows the raw record", async ({ page }) => {
-    await detailButton(page, "Detalhes da linha 2").click();
+    await detailButton(page, "Detalhes do título 1").click();
 
-    const dialog = page.getByRole("dialog", { name: "Linha 2" });
+    const dialog = page.getByRole("dialog", { name: "Título 1" });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText("Autorizada");
     await expect(dialog).toContainText("3524 0300 0000 0000 0199 5500 1000 0000 0112 3456 7890");
@@ -50,9 +74,9 @@ test.describe("receivable detail (pt-BR)", () => {
   });
 
   test("explains an invalid check digit", async ({ page }) => {
-    await detailButton(page, "Detalhes da linha 3").click();
+    await detailButton(page, "Detalhes do título 2").click();
 
-    await expect(page.getByRole("dialog", { name: "Linha 3" })).toContainText(
+    await expect(page.getByRole("dialog", { name: "Título 2" })).toContainText(
       /1 \(inválido; o esperado é \d\)/,
     );
   });
@@ -60,10 +84,10 @@ test.describe("receivable detail (pt-BR)", () => {
   test("closes with Escape and returns the focus to the button that opened it", async ({
     page,
   }) => {
-    const opener = detailButton(page, "Detalhes da linha 5");
+    const opener = detailButton(page, "Detalhes do título 4");
     await opener.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("dialog", { name: "Linha 5" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Título 4" })).toBeVisible();
 
     await page.keyboard.press("Escape");
 
@@ -72,9 +96,63 @@ test.describe("receivable detail (pt-BR)", () => {
   });
 
   test("closes with its close button", async ({ page }) => {
-    await detailButton(page, "Detalhes da linha 2").click();
+    await detailButton(page, "Detalhes do título 1").click();
     await page.getByRole("button", { name: "Fechar" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("opens from a click anywhere on the row", async ({ page }) => {
+    await visibleText(page, sampleReceivables[2]?.key ?? "").click();
+
+    await expect(page.getByRole("dialog", { name: "Título 3" })).toBeVisible();
+  });
+
+  test("lets the key be selected without opening the detail", async ({ page }) => {
+    const key = visibleText(page, sampleReceivables[2]?.key ?? "");
+    const box = await key.boundingBox();
+    const middle = (box?.y ?? 0) + (box?.height ?? 0) / 2;
+    await page.mouse.move((box?.x ?? 0) + 2, middle);
+    await page.mouse.down();
+    await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) - 2, middle, { steps: 5 });
+    await page.mouse.up();
+
+    expect(await page.evaluate(() => window.getSelection()?.toString() ?? "")).not.toBe("");
+    await afterTwoFrames(page);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("explains an invalid check digit on hover and keyboard focus", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "tooltips do not open on touch; the tap opens the detail instead");
+    const warning = invalidDigitWarning(page);
+    const hint = page.locator("[data-slot=tooltip-content]");
+
+    await detailButton(page, "Detalhes do título 1").focus();
+    await page.keyboard.press("Tab");
+    await expect(warning).toBeFocused();
+    await expect(hint).toContainText("O dígito verificador desta chave não confere");
+    await page.keyboard.press("Escape");
+    await page.mouse.move(0, 0);
+    await expect(hint).toBeHidden();
+
+    await warning.hover();
+    await expect(hint).toBeVisible();
+    await hint.click();
+    await afterTwoFrames(page);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("opens the detail, which explains the digit, from the warning", async ({ page }) => {
+    const warning = invalidDigitWarning(page);
+    await expect(warning).toHaveAccessibleDescription(/não confere; a consulta é feita/);
+
+    await warning.click();
+
+    await expect(page.getByRole("dialog", { name: "Título 2" })).toContainText(
+      /inválido; o esperado é \d/,
+    );
   });
 });
 
@@ -94,8 +172,8 @@ test.describe("receivable detail during a check (pt-BR)", () => {
     await page.locator('input[type="file"]').setInputFiles(samplePath);
     await page.getByRole("button", { name: "Consultar situações" }).click();
 
-    await detailButton(page, "Detalhes da linha 2").click();
-    const dialog = page.getByRole("dialog", { name: "Linha 2" });
+    await detailButton(page, "Detalhes do título 1").click();
+    const dialog = page.getByRole("dialog", { name: "Título 1" });
     await expect(dialog).toContainText("Consultando…");
 
     releaseResponse();
@@ -112,8 +190,8 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       await page.goto("/");
       await checkSample(page, "Consultar situações", "Consultar de novo");
-      await detailButton(page, "Detalhes da linha 3").click();
-      await expect(page.getByRole("dialog", { name: "Linha 3" })).toBeVisible();
+      await detailButton(page, "Detalhes do título 2").click();
+      await expect(page.getByRole("dialog", { name: "Título 2" })).toBeVisible();
 
       const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
 
@@ -128,8 +206,8 @@ test.describe("receivable detail (en)", () => {
   test("formats the month of issue in English", async ({ page }) => {
     await page.goto("/");
     await checkSample(page, "Check statuses", "Check again");
-    await detailButton(page, "Details of line 2").click();
+    await detailButton(page, "Details of receivable 1").click();
 
-    await expect(page.getByRole("dialog", { name: "Line 2" })).toContainText("March 2024");
+    await expect(page.getByRole("dialog", { name: "Receivable 1" })).toContainText("March 2024");
   });
 });

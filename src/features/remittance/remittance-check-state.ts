@@ -81,6 +81,7 @@ export type RowState =
   | { readonly kind: "failed"; readonly reason: ItemFailureReason };
 
 export interface ReceivableRow extends Receivable {
+  readonly ordinal: number;
   readonly state: RowState;
 }
 
@@ -89,14 +90,15 @@ export function deriveRows(
   state: RemittanceCheckState,
 ): ReceivableRow[] {
   const results: Results = "results" in state ? state.results : new Map();
-  return receivables.map((receivable): ReceivableRow => {
+  return receivables.map((receivable, index): ReceivableRow => {
+    const base = { ...receivable, ordinal: index + 1 };
     const check = results.get(receivable.lineNumber);
     if (!check) {
-      return { ...receivable, state: { kind: "pending" } };
+      return { ...base, state: { kind: "pending" } };
     }
     return check.outcome === "status"
-      ? { ...receivable, state: { kind: "status", status: check.status } }
-      : { ...receivable, state: { kind: "failed", reason: check.reason } };
+      ? { ...base, state: { kind: "status", status: check.status } }
+      : { ...base, state: { kind: "failed", reason: check.reason } };
   });
 }
 

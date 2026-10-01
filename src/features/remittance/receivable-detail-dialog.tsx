@@ -4,7 +4,13 @@ import { useFormatter, useTranslations } from "next-intl";
 
 import { StatusBadge } from "@/components/status-badge";
 import type { DialogHandle } from "@/components/ui/dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { AccessKeyField, AccessKeyParts } from "@/domain/cnab/access-key";
 import { accessKeyLayout, splitAccessKey } from "@/domain/cnab/access-key";
 import type { FieldPosition } from "@/domain/cnab/layout";
@@ -79,7 +85,8 @@ function ReceivableDetail({ row, line, statusLabel }: ReceivableDetailProps) {
   return (
     <>
       <DialogHeader className="pr-8">
-        <DialogTitle>{t("title", { lineNumber: row.lineNumber })}</DialogTitle>
+        <DialogTitle>{t("title", { ordinal: row.ordinal })}</DialogTitle>
+        <DialogDescription>{t("fileLine", { lineNumber: row.lineNumber })}</DialogDescription>
         <div>
           <StatusBadge tone={toneOf(row)} label={statusLabel} />
         </div>
