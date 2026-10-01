@@ -184,6 +184,23 @@ test.describe("language switcher", () => {
     await expect(homeLink.locator("img")).toHaveAttribute("alt", "");
   });
 
+  test("keeps the brand mark the same size in both themes", async ({ page }) => {
+    const mark = page.getByRole("banner").getByRole("link").locator("img");
+    const innerSize = () =>
+      mark.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      });
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/");
+    const lightSize = await innerSize();
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+
+    expect(await innerSize()).toBe(lightSize);
+  });
+
   test("names each language with its visible code", async ({ page }) => {
     await page.goto("/");
 

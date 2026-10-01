@@ -30,7 +30,7 @@ export async function AppBar({ locale, theme, logo }: AppBarProps) {
             width={28}
             height={28}
             priority
-            className="size-7 shrink-0 rounded-md dark:bg-white dark:p-0.5"
+            className="size-7 shrink-0 rounded-md p-0.5 dark:bg-white"
           />
           <span className="truncate">{t("name")}</span>
         </Link>
