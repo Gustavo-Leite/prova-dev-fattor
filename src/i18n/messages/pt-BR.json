@@ -142,6 +142,75 @@
       "recordType": "Tipo de registro",
       "bankData": "Dados do banco, mostrados sem interpretação",
       "accessKey": "Chave de acesso da NF-e"
+    },
+    "layout": {
+      "metadataTitle": "Layout do CNAB 444",
+      "title": "Layout do CNAB 444",
+      "intro": "O CNAB 444 é o arquivo de remessa usado na cessão de recebíveis a fundos, securitizadoras e factorings. Cada linha é um registro de {length} colunas: o CNAB 400 de cobrança acrescido da chave de acesso da NF-e que lastreia cada título, nas {keyPositions}.",
+      "docLink": "Documentação completa do layout no repositório",
+      "records": {
+        "title": "Tipos de registro",
+        "description": "A coluna 1 de cada linha diz o tipo do registro.",
+        "recordType": "Tipo {code}, na {position}",
+        "header": {
+          "name": "Header",
+          "description": "Primeira linha: identifica a remessa, a empresa e a data de gravação."
+        },
+        "detail": {
+          "name": "Detalhe",
+          "description": "Uma linha por título: número de controle, vencimento, valor, pagador e chave da NF-e.",
+          "accessKey": "Chave de acesso da NF-e nas {positions}."
+        },
+        "trailer": {
+          "name": "Trailer",
+          "description": "Última linha: fecha o arquivo.",
+          "recordCount": "Total de linhas nas {positions}; na amostra, alinhado à esquerda nas {samplePositions}, seguido de brancos."
+        }
+      },
+      "xray": {
+        "title": "Um detalhe da amostra, coluna a coluna",
+        "description": "Primeiro detalhe do arquivo da prova, com um pagador fictício. As colunas entre campos não têm destaque.",
+        "label": "Linha de detalhe da amostra com os campos destacados",
+        "caption": "Cor sólida e sublinhado: colunas estáveis. Contorno: posições observadas na amostra."
+      },
+      "fields": {
+        "recordType": "Tipo de registro",
+        "titleNumber": "Número do título",
+        "titleNumberDigit": "Dígito do número do título",
+        "controlNumber": "Número de controle do participante",
+        "titleKind": "Espécie do título",
+        "dueDate": "Vencimento",
+        "amount": "Valor do título",
+        "payerDocument": "CPF/CNPJ do pagador",
+        "payerName": "Nome do pagador",
+        "payerCity": "Cidade do pagador",
+        "payerPostalCode": "CEP do pagador",
+        "payerState": "UF do pagador",
+        "invoiceAccessKey": "Chave de acesso da NF-e"
+      },
+      "table": {
+        "title": "Campos do detalhe",
+        "observedNote": "Só o tipo de registro e a chave da NF-e têm posição garantida, e só eles são usados na extração. As demais posições foram observadas na amostra e não são garantidas: no detalhe 2, por exemplo, todos os campos a partir do número de controle estão uma coluna à direita.",
+        "caption": "Campos do primeiro detalhe da amostra",
+        "scrollLabel": "Tabela de campos do detalhe, com rolagem horizontal",
+        "columns": {
+          "field": "Campo",
+          "positions": "Posições",
+          "raw": "Valor no arquivo",
+          "decoded": "Valor decodificado",
+          "reliability": "Confiabilidade"
+        },
+        "reliability": {
+          "stable": "Estável",
+          "observed": "Observado na amostra"
+        },
+        "detailRecord": "Detalhe",
+        "notDecoded": "—"
+      },
+      "accessKey": {
+        "title": "Anatomia da chave de acesso",
+        "description": "A chave da NF-e tem 44 dígitos e codifica a nota que originou o título. É ela que identifica cada item na consulta de status."
+      }
     }
   },
   "notFound": {
@@ -154,6 +223,11 @@
   },
   "appBar": {
     "name": "Status CNAB 444",
+    "nav": {
+      "label": "Principal",
+      "check": "Consultar",
+      "layout": "Layout CNAB 444"
+    },
     "theme": {
       "label": "Tema",
       "system": "Seguir o tema do sistema",

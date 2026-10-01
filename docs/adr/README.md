@@ -21,6 +21,7 @@ projeto, que apontarão para os ADRs.
 | [0011](0011-fattor-api-integration.md)          | BFF com upload único e resultados em NDJSON; sessão, limites e prazo        | Aceito |
 | [0012](0012-results-list.md) | Filtros, busca e paginação por função pura, sem biblioteca de tabela | Aceito |
 | [0013](0013-theme-and-language-switchers.md) | Tema e idioma em cookie aplicado no servidor, via Server Actions | Aceito |
+| [0014](0014-cnab-444-layout-page.md) | Página do layout CNAB 444; posições observadas só para exibição | Aceito |
 
 Cada ADR segue o mesmo formato: Contexto, Opções consideradas, Decisão (a primeira linha resume a
 decisão), Consequências e Evidências (arquivos que aplicam a regra e o commit em que ela entrou).

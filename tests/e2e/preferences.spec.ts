@@ -13,6 +13,12 @@ type Theme = keyof typeof backgroundByTheme;
 
 const opposite: Record<Theme, Theme> = { light: "dark", dark: "light" };
 
+function brandLink(page: Page) {
+  return page
+    .getByRole("banner")
+    .getByRole("link", { name: /^(Status CNAB 444|CNAB 444 Status)$/ });
+}
+
 function themeGroup(page: Page) {
   return page.getByRole("group", { name: "Tema" });
 }
@@ -178,14 +184,14 @@ test.describe("language switcher", () => {
   test("shows the brand mark as a decoration of the home link", async ({ page }) => {
     await page.goto("/");
 
-    const homeLink = page.getByRole("banner").getByRole("link");
-    await expect(homeLink).toHaveAccessibleName(/CNAB 444/);
+    const homeLink = brandLink(page);
+    await expect(homeLink).toBeVisible();
     await expect(homeLink.locator("img")).toBeVisible();
     await expect(homeLink.locator("img")).toHaveAttribute("alt", "");
   });
 
   test("keeps the brand mark the same size in both themes", async ({ page }) => {
-    const mark = page.getByRole("banner").getByRole("link").locator("img");
+    const mark = brandLink(page).locator("img");
     const innerSize = () =>
       mark.evaluate((element) => {
         const style = getComputedStyle(element);

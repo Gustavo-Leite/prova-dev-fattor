@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import type { FieldPosition } from "@/domain/cnab/layout";
 import { readField } from "@/domain/cnab/layout";
 
-export type LineXraySegmentTone = "solid" | "muted" | "underline";
+export type LineXraySegmentTone = "solid" | "muted" | "underline" | "observed";
 
 export interface LineXraySegment {
   readonly position: FieldPosition;
@@ -18,13 +18,38 @@ const segmentClasses: Record<LineXraySegmentTone, string> = {
   muted: "bg-muted text-muted-foreground",
   underline:
     "font-semibold text-foreground underline decoration-ring decoration-2 underline-offset-4",
+  observed: "box-decoration-clone bg-muted text-foreground inset-ring inset-ring-ring",
 };
 
 const swatchClasses: Record<LineXraySegmentTone, string> = {
   solid: "size-3 rounded-sm bg-primary",
   muted: "size-3 rounded-sm border border-input bg-muted",
   underline: "h-0.5 w-3 bg-ring",
+  observed: "size-3 rounded-sm bg-muted inset-ring inset-ring-ring",
 };
+
+interface LinePiece {
+  readonly start: number;
+  readonly text: string;
+  readonly tone: LineXraySegmentTone | null;
+}
+
+function splitLine(line: string, segments: readonly LineXraySegment[]): LinePiece[] {
+  const pieces: LinePiece[] = [];
+  let nextColumn = 1;
+  for (const { position, tone } of segments) {
+    if (position.start > nextColumn) {
+      const gap = { start: nextColumn, end: position.start - 1 };
+      pieces.push({ start: gap.start, text: readField(line, gap), tone: null });
+    }
+    pieces.push({ start: position.start, text: readField(line, position), tone });
+    nextColumn = position.end + 1;
+  }
+  if (nextColumn <= line.length) {
+    pieces.push({ start: nextColumn, text: line.slice(nextColumn - 1), tone: null });
+  }
+  return pieces;
+}
 
 export function usePositionLabel(): (position: FieldPosition) => string {
   const t = useTranslations("cnab");
@@ -49,9 +74,9 @@ export function LineXray({ line, segments, label, caption }: LineXrayProps) {
         aria-label={label}
         className="rounded-lg border p-2 font-mono text-[0.6875rem] leading-5 break-all whitespace-break-spaces"
       >
-        {segments.map((segment) => (
-          <span key={segment.position.start} className={segmentClasses[segment.tone]}>
-            {readField(line, segment.position)}
+        {splitLine(line, segments).map((piece) => (
+          <span key={piece.start} className={piece.tone ? segmentClasses[piece.tone] : undefined}>
+            {piece.text}
           </span>
         ))}
       </pre>
