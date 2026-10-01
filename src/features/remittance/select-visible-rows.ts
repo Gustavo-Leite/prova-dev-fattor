@@ -57,10 +57,13 @@ export function nextSort(current: RowSort, column: SortColumn): RowSort {
   return defaultSort;
 }
 
-export interface RowSelection {
+export interface RowFilter {
   readonly tones: ReadonlySet<RowTone>;
   readonly query: string;
   readonly sort: RowSort;
+}
+
+export interface RowSelection extends RowFilter {
   readonly pageIndex: number;
   readonly pageSize: number;
 }
@@ -109,19 +112,25 @@ function sortRows(rows: readonly ReceivableRow[], sort: RowSort): ReceivableRow[
   );
 }
 
+export function selectFilteredRows(
+  rows: readonly ReceivableRow[],
+  filter: RowFilter,
+): ReceivableRow[] {
+  const query = normalizeQuery(filter.query);
+  return sortRows(
+    rows.filter(
+      (row) =>
+        (filter.tones.size === 0 || filter.tones.has(toneOf(row))) && matchesQuery(row, query),
+    ),
+    filter.sort,
+  );
+}
+
 export function selectVisibleRows(
   rows: readonly ReceivableRow[],
   selection: RowSelection,
 ): VisibleRows {
-  const query = normalizeQuery(selection.query);
-  const filtered = sortRows(
-    rows.filter(
-      (row) =>
-        (selection.tones.size === 0 || selection.tones.has(toneOf(row))) &&
-        matchesQuery(row, query),
-    ),
-    selection.sort,
-  );
+  const filtered = selectFilteredRows(rows, selection);
   const pageCount = Math.max(1, Math.ceil(filtered.length / selection.pageSize));
   const pageIndex = Math.min(Math.max(selection.pageIndex, 0), pageCount - 1);
   const start = pageIndex * selection.pageSize;
@@ -133,7 +142,7 @@ export function selectVisibleRows(
     pageIndex,
     from: pageRows.length === 0 ? 0 : start + 1,
     to: start + pageRows.length,
-    hasInvalidQuery: query.kind === "invalid",
+    hasInvalidQuery: normalizeQuery(selection.query).kind === "invalid",
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { MouseEvent, RefObject } from "react";
 import { useId, useRef, useState } from "react";
 
@@ -20,6 +20,12 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { RemittanceMessage } from "@/features/remittance/describe-remittance-issue";
 import { describeSubmitError } from "@/features/remittance/describe-remittance-issue";
+import {
+  csvDelimiterFor,
+  downloadCsv,
+  toCsv,
+  toRemittanceCsvRecords,
+} from "@/features/remittance/export-csv";
 import type {
   ReceivableRow,
   RemittanceCheckState,
@@ -39,6 +45,7 @@ import {
   defaultPageSize,
   defaultSort,
   nextSort,
+  selectFilteredRows,
   selectVisibleRows,
 } from "@/features/remittance/select-visible-rows";
 
@@ -50,6 +57,7 @@ export interface RemittanceResultsProps {
 
 export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps) {
   const t = useTranslations("remittance");
+  const locale = useLocale();
   const [detailHandle] = useState(() => createDialogHandle<number>());
   const [tones, setTones] = useState<ReadonlySet<RowTone>>(() => new Set());
   const [query, setQuery] = useState("");
@@ -98,6 +106,22 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
   const changePageSize = (next: PageSize) => {
     setPageSize(next);
     setPageIndex(0);
+  };
+  const exportRows = () => {
+    const header = [
+      t("check.ordinalColumn"),
+      t("export.lineColumn"),
+      t("check.keyColumn"),
+      t("check.statusColumn"),
+    ];
+    const records = toRemittanceCsvRecords(
+      selectFilteredRows(rows, { tones, query, sort }),
+      rowLabel,
+    );
+    downloadCsv(
+      t("export.fileName"),
+      toCsv(header, records, { delimiter: csvDelimiterFor(locale) }),
+    );
   };
 
   const filterAnnouncement =
@@ -149,10 +173,13 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
               tones={tones}
               query={query}
               hasFilters={hasFilters}
+              exportCount={visible.filteredCount}
+              canExport={!isChecking && visible.filteredCount > 0}
               toneLabel={toneLabel}
               onToggleTone={toggleTone}
               onQueryChange={changeQuery}
               onClear={clearFilters}
+              onExport={exportRows}
             />
 
             {visible.filteredCount === 0 ? (

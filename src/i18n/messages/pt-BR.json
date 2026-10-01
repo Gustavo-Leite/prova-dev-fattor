@@ -61,6 +61,11 @@
       "digitsOnly": "A chave de acesso tem só números.",
       "matches": "{count, plural, =0 {Nenhum título encontrado.} one {# título encontrado.} other {# títulos encontrados.}}"
     },
+    "export": {
+      "button": "{count, plural, =0 {Exportar 0 títulos (CSV)} one {Exportar # título (CSV)} other {Exportar # títulos (CSV)}}",
+      "fileName": "situacoes-remessa.csv",
+      "lineColumn": "Linha do arquivo"
+    },
     "sorting": {
       "sortBy": "Ordenar por",
       "options": {

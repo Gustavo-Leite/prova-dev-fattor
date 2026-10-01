@@ -12,6 +12,7 @@ import {
   filterOptions,
   nextSort,
   normalizeQuery,
+  selectFilteredRows,
   selectVisibleRows,
 } from "@/features/remittance/select-visible-rows";
 
@@ -187,6 +188,33 @@ describe("sorting", () => {
       pageIndex: 1,
     });
     expect(lines(visible.pageRows)).toEqual([14, 13, 12, 11, 10, 9, 8, 7, 6, 5]);
+  });
+});
+
+describe("selectFilteredRows", () => {
+  it("returns every filtered row in order, across all pages", () => {
+    const rows = manyRows(30, authorized).map((item, index) =>
+      index % 3 === 0 ? { ...item, state: cancelled } : item,
+    );
+    const filtered = selectFilteredRows(rows, {
+      tones: new Set<RowTone>(["authorized"]),
+      query: "",
+      sort: { column: "ordinal", direction: "desc" },
+    });
+    expect(filtered).toHaveLength(20);
+    expect(lines(filtered).slice(0, 3)).toEqual([31, 30, 28]);
+  });
+
+  it("returns nothing for a search with letters", () => {
+    expect(selectFilteredRows(manyRows(3), { ...everything, query: "abc" })).toEqual([]);
+  });
+
+  it("agrees with the count of the paginated selection", () => {
+    const rows = manyRows(23);
+    const selection = { ...everything, query: "1", pageSize: 10 };
+    expect(selectFilteredRows(rows, selection)).toHaveLength(
+      selectVisibleRows(rows, selection).filteredCount,
+    );
   });
 });
 

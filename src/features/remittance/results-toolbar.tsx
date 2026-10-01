@@ -14,10 +14,13 @@ export interface ResultsToolbarProps {
   readonly tones: ReadonlySet<RowTone>;
   readonly query: string;
   readonly hasFilters: boolean;
+  readonly exportCount: number;
+  readonly canExport: boolean;
   readonly toneLabel: (tone: RowTone) => string;
   readonly onToggleTone: (tone: RowTone) => void;
   readonly onQueryChange: (query: string) => void;
   readonly onClear: () => void;
+  readonly onExport: () => void;
 }
 
 export function ResultsToolbar({
@@ -25,10 +28,13 @@ export function ResultsToolbar({
   tones,
   query,
   hasFilters,
+  exportCount,
+  canExport,
   toneLabel,
   onToggleTone,
   onQueryChange,
   onClear,
+  onExport,
 }: ResultsToolbarProps) {
   const t = useTranslations("remittance");
   const searchId = useId();
@@ -61,16 +67,39 @@ export function ResultsToolbar({
             {t("filters.searchHint")}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="focus-visible:ring-offset-card sm:mt-6"
-          disabled={!hasFilters}
-          focusableWhenDisabled
-          onClick={onClear}
-        >
-          {t("filters.clear")}
-        </Button>
+        <div className="flex flex-wrap gap-2 sm:mt-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="focus-visible:ring-offset-card"
+            disabled={!hasFilters}
+            focusableWhenDisabled
+            onClick={onClear}
+          >
+            {t("filters.clear")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="focus-visible:ring-offset-card"
+            disabled={!canExport}
+            focusableWhenDisabled
+            onClick={onExport}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 15V3M7 10l5 5 5-5M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            </svg>
+            {t("export.button", { count: exportCount })}
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span id={filterLabelId} className="text-sm font-medium">

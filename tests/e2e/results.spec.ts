@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
@@ -35,6 +37,23 @@ function statusFilter(page: Page, name: RegExp) {
   return resultsSection(page)
     .getByRole("group", { name: "Filtrar por situação" })
     .getByRole("button", { name });
+}
+
+function exportButton(page: Page, name: string) {
+  return resultsSection(page).getByRole("button", { name, exact: true });
+}
+
+async function downloadCsv(page: Page, buttonName: string) {
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: buttonName, exact: true }).click(),
+  ]);
+  const content = readFileSync(await download.path(), "utf8");
+  return {
+    fileName: download.suggestedFilename(),
+    content,
+    lines: content.slice(1).split("\r\n"),
+  };
 }
 
 function searchBox(page: Page) {
@@ -147,6 +166,53 @@ test.describe("results list (pt-BR)", () => {
     await expect(visibleRows(page)).toHaveCount(25);
     await expect(clear).toBeFocused();
     await expect(clear).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("exports the filtered rows of every page as CSV", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
+    await chooseRemittance(page);
+    await expect(pagination(page)).toContainText("1–25 de 30");
+
+    const everything = await downloadCsv(page, "Exportar 30 títulos (CSV)");
+    expect(everything.lines).toHaveLength(31);
+
+    await statusFilter(page, /^Denegada: 3$/).click();
+    const { fileName, content, lines } = await downloadCsv(page, "Exportar 3 títulos (CSV)");
+
+    expect(fileName).toBe("situacoes-remessa.csv");
+    expect(content.codePointAt(0)).toBe(0xfeff);
+    expect(lines).toHaveLength(4);
+    expect(lines[0]).toBe("Nº;Linha do arquivo;Chave de acesso da NF-e;Situação");
+    const firstDenied = remittance.receivables.find((item) => item.lineNumber === 7)?.key ?? "";
+    const groupedKey = firstDenied.replace(/(\d{4})(?=\d)/g, "$1 ");
+    expect(groupedKey.split(" ")).toHaveLength(11);
+    expect(lines[1]).toBe(`6;7;${groupedKey};Denegada`);
+  });
+
+  test("keeps the export disabled while the check runs", async ({ page }) => {
+    let releaseResponse: () => void = () => undefined;
+    const responseReleased = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    await page.route("**/api/remittances", async (route) => {
+      await responseReleased;
+      await fulfillStream(fullStream(remittance.receivables))(route);
+    });
+    await chooseRemittance(page);
+
+    const button = exportButton(page, "Exportar 30 títulos (CSV)");
+    await expect(button).toHaveAttribute("aria-disabled", "true");
+
+    releaseResponse();
+
+    await expect(resultsSection(page).getByText("30 de 30 consultados")).toBeVisible();
+    await expect(button).not.toHaveAttribute("aria-disabled", "true");
+
+    await searchBox(page).fill("abc");
+    await expect(exportButton(page, "Exportar 0 títulos (CSV)")).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   test("keeps an active filter visible when its rows are resolved", async ({ page }) => {
@@ -371,3 +437,19 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   });
 }
+
+test.describe("results export (en)", () => {
+  test.use({ locale: "en" });
+
+  test("uses English labels and a comma as the delimiter", async ({ page }) => {
+    await page.goto("/");
+    await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
+    await chooseRemittance(page);
+
+    const { fileName, lines } = await downloadCsv(page, "Export 30 receivables (CSV)");
+
+    expect(fileName).toBe("remittance-status.csv");
+    expect(lines[0]).toBe("No.,File line,NF-e access key,Status");
+    expect(lines).toHaveLength(31);
+  });
+});

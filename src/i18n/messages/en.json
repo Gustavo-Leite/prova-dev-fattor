@@ -61,6 +61,11 @@
       "digitsOnly": "Access keys only have digits.",
       "matches": "{count, plural, =0 {No receivables found.} one {# receivable found.} other {# receivables found.}}"
     },
+    "export": {
+      "button": "{count, plural, one {Export # receivable (CSV)} other {Export # receivables (CSV)}}",
+      "fileName": "remittance-status.csv",
+      "lineColumn": "File line"
+    },
     "sorting": {
       "sortBy": "Sort by",
       "options": {
