@@ -82,6 +82,10 @@ test.describe("results list (pt-BR)", () => {
     await denied.click();
 
     await expect(denied).toHaveAttribute("aria-pressed", "true");
+    const filterLabel = resultsSection(page).getByText("Filtrar por situação", { exact: true });
+    expect((await filterLabel.boundingBox())?.width ?? 0).toBeGreaterThan(40);
+    await expect(denied.locator("svg")).toBeVisible();
+    await expect(statusFilter(page, /^Autorizada: 15$/).locator("svg")).toBeHidden();
     await expect(visibleRows(page)).toHaveCount(3);
     await expect(pagination(page)).toContainText("1–3 de 3");
     await expect(nextPage(page)).toHaveAttribute("aria-disabled", "true");
