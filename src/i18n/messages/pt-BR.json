@@ -27,7 +27,8 @@
       "started": "Consultando {total, plural, one {# título} other {# títulos}} na API da Fattor.",
       "progress": "{done} de {total} consultados",
       "completed": "Consulta concluída: {total, plural, one {# título consultado} other {# títulos consultados}}{failed, plural, =0 {.} one {, # com falha.} other {, # com falha.}}",
-      "credentialsRejected": "A API da Fattor recusou a sessão, então a consulta foi interrompida. Entre de novo.",
+      "credentialsRejected": "A API da Fattor recusou a sessão, então a consulta foi interrompida.",
+      "signInAgain": "Entrar de novo",
       "interrupted": "A consulta foi interrompida antes do fim. Os títulos sem situação podem ser consultados de novo.",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Situação de cada título do arquivo, na ordem das linhas",
@@ -105,7 +106,7 @@
       "UNEXPECTED_RESPONSE": "O servidor respondeu de forma inesperada (código {status}).",
       "INVALID_REQUEST": "O servidor não aceitou o envio do arquivo.",
       "CROSS_SITE_REQUEST": "O envio foi bloqueado por vir de outra origem.",
-      "SESSION_EXPIRED": "Sua sessão expirou. Entre de novo para consultar.",
+      "SESSION_EXPIRED": "Sua sessão expirou.",
       "LENGTH_REQUIRED": "O navegador não informou o tamanho do arquivo."
     },
     "rejections": {

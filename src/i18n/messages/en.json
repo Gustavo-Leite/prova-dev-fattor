@@ -27,7 +27,8 @@
       "started": "Checking {total, plural, one {# receivable} other {# receivables}} with the Fattor API.",
       "progress": "{done} of {total} checked",
       "completed": "Check finished: {total, plural, one {# receivable checked} other {# receivables checked}}{failed, plural, =0 {.} other {, # failed.}}",
-      "credentialsRejected": "The Fattor API refused the session, so the check was stopped. Sign in again.",
+      "credentialsRejected": "The Fattor API refused the session, so the check was stopped.",
+      "signInAgain": "Sign in again",
       "interrupted": "The check stopped before the end. Receivables without a status can be checked again.",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Status of each receivable in the file, in line order",
@@ -105,7 +106,7 @@
       "UNEXPECTED_RESPONSE": "The server gave an unexpected answer (code {status}).",
       "INVALID_REQUEST": "The server did not accept the upload.",
       "CROSS_SITE_REQUEST": "The upload was blocked because it came from another origin.",
-      "SESSION_EXPIRED": "Your session has expired. Sign in again to check.",
+      "SESSION_EXPIRED": "Your session has expired.",
       "LENGTH_REQUIRED": "The browser did not send the file size."
     },
     "rejections": {

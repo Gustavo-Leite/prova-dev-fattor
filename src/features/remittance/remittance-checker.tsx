@@ -6,10 +6,12 @@ import { useCallback, useEffect, useId, useReducer, useRef, useState } from "rea
 import { Button } from "@/components/ui/button";
 import type { Receivable } from "@/domain/cnab/parse-cnab-444";
 import { readStatusStream } from "@/features/remittance/read-status-stream";
+import type { RemittanceCheckAction } from "@/features/remittance/remittance-check-state";
 import {
   deriveRows,
   initialCheckState,
   remittanceCheckReducer,
+  requiresSignIn,
   summarizeRows,
 } from "@/features/remittance/remittance-check-state";
 import { RemittanceResults } from "@/features/remittance/remittance-results";
@@ -34,6 +36,22 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
   const [state, dispatch] = useReducer(remittanceCheckReducer, initialCheckState);
   const latestAttempt = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
+  const actionButton = useRef<HTMLButtonElement>(null);
+  const signInLink = useRef<HTMLAnchorElement>(null);
+  const actionButtonHadFocus = useRef(false);
+
+  const update = useCallback((action: RemittanceCheckAction) => {
+    actionButtonHadFocus.current =
+      actionButton.current !== null && document.activeElement === actionButton.current;
+    dispatch(action);
+  }, []);
+
+  const needsSignIn = requiresSignIn(state);
+  useEffect(() => {
+    if (needsSignIn && actionButtonHadFocus.current) {
+      signInLink.current?.focus();
+    }
+  }, [needsSignIn]);
 
   const cancelInFlight = useCallback(() => {
     inFlight.current?.abort();
@@ -48,24 +66,27 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
     setSelection(null);
   }, [cancelInFlight]);
 
-  const check = useCallback(async (current: Selection) => {
-    const controller = new AbortController();
-    inFlight.current = controller;
-    const attempt = ++latestAttempt.current;
-    dispatch({ type: "submitted", attempt });
+  const check = useCallback(
+    async (current: Selection) => {
+      const controller = new AbortController();
+      inFlight.current = controller;
+      const attempt = ++latestAttempt.current;
+      update({ type: "submitted", attempt });
 
-    const submission = await submitRemittance(current.file, { signal: controller.signal });
-    if (!submission.ok) {
-      dispatch({ type: "requestFailed", attempt, error: submission.error });
-      return;
-    }
-    const expected = {
-      lineNumbers: new Set(current.receivables.map((receivable) => receivable.lineNumber)),
-    };
-    for await (const event of readStatusStream(submission.body, expected, controller.signal)) {
-      dispatch({ type: "received", attempt, event });
-    }
-  }, []);
+      const submission = await submitRemittance(current.file, { signal: controller.signal });
+      if (!submission.ok) {
+        update({ type: "requestFailed", attempt, error: submission.error });
+        return;
+      }
+      const expected = {
+        lineNumbers: new Set(current.receivables.map((receivable) => receivable.lineNumber)),
+      };
+      for await (const event of readStatusStream(submission.body, expected, controller.signal)) {
+        update({ type: "received", attempt, event });
+      }
+    },
+    [update],
+  );
 
   const handleReady = useCallback(
     (file: File, receivables: readonly Receivable[], lines: readonly string[]) => {
@@ -118,17 +139,25 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
                 </p>
               )}
             </div>
-            <Button
-              disabled={isChecking || state.phase === "idle"}
-              focusableWhenDisabled
-              onClick={() => {
-                void check(selection);
-              }}
-            >
-              {actionLabel}
-            </Button>
+            {!needsSignIn && (
+              <Button
+                ref={actionButton}
+                disabled={isChecking || state.phase === "idle"}
+                focusableWhenDisabled
+                onClick={() => {
+                  void check(selection);
+                }}
+              >
+                {actionLabel}
+              </Button>
+            )}
           </div>
-          <RemittanceResults rows={rows} lines={selection.lines} state={state} />
+          <RemittanceResults
+            rows={rows}
+            lines={selection.lines}
+            state={state}
+            signInLink={signInLink}
+          />
         </section>
       )}
     </div>

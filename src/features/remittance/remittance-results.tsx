@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import type { MouseEvent, RefObject } from "react";
 import { useId, useRef, useState } from "react";
@@ -31,7 +32,11 @@ import type {
   RemittanceCheckState,
   RowTone,
 } from "@/features/remittance/remittance-check-state";
-import { summarizeRows, toneOf } from "@/features/remittance/remittance-check-state";
+import {
+  requiresSignIn,
+  summarizeRows,
+  toneOf,
+} from "@/features/remittance/remittance-check-state";
 import { ReceivableDetailDialog } from "@/features/remittance/receivable-detail-dialog";
 import { ResultsPagination } from "@/features/remittance/results-pagination";
 import { ResultsToolbar } from "@/features/remittance/results-toolbar";
@@ -53,9 +58,10 @@ export interface RemittanceResultsProps {
   readonly rows: readonly ReceivableRow[];
   readonly lines: readonly string[];
   readonly state: RemittanceCheckState;
+  readonly signInLink: RefObject<HTMLAnchorElement | null>;
 }
 
-export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps) {
+export function RemittanceResults({ rows, lines, state, signInLink }: RemittanceResultsProps) {
   const t = useTranslations("remittance");
   const locale = useLocale();
   const [detailHandle] = useState(() => createDialogHandle<number>());
@@ -133,6 +139,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
     state.phase === "requestFailed" && state.error.code !== "ABORTED"
       ? describeSubmitError(state.error)
       : null;
+  const needsSignIn = requiresSignIn(state);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -152,11 +159,13 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
               </ul>
             </AlertDescription>
           )}
+          {needsSignIn && <SignInAgainLink ref={signInLink} />}
         </Alert>
       )}
       {state.phase === "failed" && (
         <Alert variant="destructive">
           <AlertTitle>{t("check.credentialsRejected")}</AlertTitle>
+          <SignInAgainLink ref={signInLink} />
         </Alert>
       )}
       {state.phase === "interrupted" && (
@@ -428,6 +437,25 @@ function DetailTrigger({ row, handle, triggerRef }: DetailTriggerProps) {
       </svg>
       <span className="sr-only">{t("openLabel", { ordinal: row.ordinal })}</span>
     </DialogTrigger>
+  );
+}
+
+interface SignInAgainLinkProps {
+  readonly ref: RefObject<HTMLAnchorElement | null>;
+}
+
+function SignInAgainLink({ ref }: SignInAgainLinkProps) {
+  const t = useTranslations("remittance.check");
+  return (
+    <AlertDescription>
+      <Link
+        ref={ref}
+        href="/entrar"
+        className="rounded-sm font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+      >
+        {t("signInAgain")}
+      </Link>
+    </AlertDescription>
   );
 }
 

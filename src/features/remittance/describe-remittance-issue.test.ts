@@ -163,14 +163,10 @@ describe("describeSubmitError", () => {
     ).toBe("O servidor respondeu de forma inesperada (código 502).");
   });
 
-  it("asks to sign in again when the session has expired", () => {
+  it("explains that the session has expired", () => {
     const description = describeSubmitError({ code: "SESSION_EXPIRED" });
-    expect(render("pt-BR", description.summary)).toBe(
-      "Sua sessão expirou. Entre de novo para consultar.",
-    );
-    expect(render("en", description.summary)).toBe(
-      "Your session has expired. Sign in again to check.",
-    );
+    expect(render("pt-BR", description.summary)).toBe("Sua sessão expirou.");
+    expect(render("en", description.summary)).toBe("Your session has expired.");
   });
 });
 
