@@ -49,27 +49,8 @@
       "close": "Close",
       "keyHeading": "NF-e access key",
       "partsHeading": "Parts of the key",
-      "position": "position {start}",
-      "positions": "positions {start}–{end}",
-      "fields": {
-        "stateCode": "Issuer state",
-        "yearMonth": "Year and month of issue",
-        "issuerId": "Issuer CNPJ",
-        "model": "Model",
-        "series": "Series",
-        "number": "Invoice number",
-        "emissionType": "Issue type",
-        "randomCode": "Numeric code",
-        "checkDigit": "Check digit"
-      },
-      "state": "{code} ({abbreviation})",
-      "checkDigitValid": "{digit} (valid)",
-      "checkDigitInvalid": "{digit} (invalid; expected {expected})",
       "xrayHeading": "Line x-ray",
-      "xrayCaption": "Line {lineNumber} of the file, with the 444 positions of the record.",
-      "xrayRecordType": "Record type",
-      "xrayBankData": "Bank data, shown without interpretation",
-      "xrayKey": "NF-e access key"
+      "xrayCaption": "Line {lineNumber} of the file, with the 444 positions of the record."
     },
     "filters": {
       "statusLabel": "Filter by status",
@@ -138,6 +119,29 @@
       "INVALID_RECORD_COUNT": "Line {lineNumber}: the trailer does not state a valid record count.",
       "RECORD_COUNT_MISMATCH": "Line {lineNumber}: the trailer states {declared, plural, one {# record} other {# records}}, but the file has {actual}.",
       "INVALID_ACCESS_KEY_FORMAT": "Line {lineNumber}: the NF-e access key (columns 401–444) is not in a valid format."
+    }
+  },
+  "cnab": {
+    "position": "position {start}",
+    "positions": "positions {start}–{end}",
+    "fields": {
+      "stateCode": "Issuer state",
+      "yearMonth": "Year and month of issue",
+      "issuerId": "Issuer CNPJ",
+      "model": "Model",
+      "series": "Series",
+      "number": "Invoice number",
+      "emissionType": "Issue type",
+      "randomCode": "Numeric code",
+      "checkDigit": "Check digit"
+    },
+    "state": "{code} ({abbreviation})",
+    "checkDigitValid": "{digit} (valid)",
+    "checkDigitInvalid": "{digit} (invalid; expected {expected})",
+    "segments": {
+      "recordType": "Record type",
+      "bankData": "Bank data, shown without interpretation",
+      "accessKey": "NF-e access key"
     }
   },
   "notFound": {

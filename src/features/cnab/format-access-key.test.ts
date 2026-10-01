@@ -4,7 +4,7 @@ import {
   formatIssuerId,
   groupAccessKey,
   withoutLeadingZeros,
-} from "@/features/remittance/format-access-key";
+} from "@/features/cnab/format-access-key";
 
 describe("formatIssuerId", () => {
   it("masks a numeric CNPJ", () => {

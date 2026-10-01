@@ -49,27 +49,8 @@
       "close": "Fechar",
       "keyHeading": "Chave de acesso da NF-e",
       "partsHeading": "Partes da chave",
-      "position": "posição {start}",
-      "positions": "posições {start}–{end}",
-      "fields": {
-        "stateCode": "UF do emitente",
-        "yearMonth": "Ano e mês de emissão",
-        "issuerId": "CNPJ do emitente",
-        "model": "Modelo",
-        "series": "Série",
-        "number": "Número da nota",
-        "emissionType": "Tipo de emissão",
-        "randomCode": "Código numérico",
-        "checkDigit": "Dígito verificador"
-      },
-      "state": "{code} ({abbreviation})",
-      "checkDigitValid": "{digit} (válido)",
-      "checkDigitInvalid": "{digit} (inválido; o esperado é {expected})",
       "xrayHeading": "Raio-x da linha",
-      "xrayCaption": "Linha {lineNumber} do arquivo, com as 444 posições do registro.",
-      "xrayRecordType": "Tipo de registro",
-      "xrayBankData": "Dados do banco, mostrados sem interpretação",
-      "xrayKey": "Chave de acesso da NF-e"
+      "xrayCaption": "Linha {lineNumber} do arquivo, com as 444 posições do registro."
     },
     "filters": {
       "statusLabel": "Filtrar por situação",
@@ -138,6 +119,29 @@
       "INVALID_RECORD_COUNT": "Linha {lineNumber}: o trailer não informa um total de registros válido.",
       "RECORD_COUNT_MISMATCH": "Linha {lineNumber}: o trailer informa {declared, plural, one {# registro} other {# registros}}, mas o arquivo tem {actual}.",
       "INVALID_ACCESS_KEY_FORMAT": "Linha {lineNumber}: a chave de acesso da NF-e (colunas 401–444) não tem um formato válido."
+    }
+  },
+  "cnab": {
+    "position": "posição {start}",
+    "positions": "posições {start}–{end}",
+    "fields": {
+      "stateCode": "UF do emitente",
+      "yearMonth": "Ano e mês de emissão",
+      "issuerId": "CNPJ do emitente",
+      "model": "Modelo",
+      "series": "Série",
+      "number": "Número da nota",
+      "emissionType": "Tipo de emissão",
+      "randomCode": "Código numérico",
+      "checkDigit": "Dígito verificador"
+    },
+    "state": "{code} ({abbreviation})",
+    "checkDigitValid": "{digit} (válido)",
+    "checkDigitInvalid": "{digit} (inválido; o esperado é {expected})",
+    "segments": {
+      "recordType": "Tipo de registro",
+      "bankData": "Dados do banco, mostrados sem interpretação",
+      "accessKey": "Chave de acesso da NF-e"
     }
   },
   "notFound": {
