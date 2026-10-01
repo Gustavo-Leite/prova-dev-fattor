@@ -9,6 +9,10 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
   },
+  {
+    key: "Content-Security-Policy",
+    value: "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  },
 ];
 
 const apiContentSecurityPolicy = {

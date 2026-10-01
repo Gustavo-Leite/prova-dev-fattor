@@ -15,12 +15,16 @@ const productionPolicy =
 
 const apiPolicy = /^default-src 'none'; frame-ancestors 'none'$/;
 
+const basePolicy =
+  /^object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'$/;
+
 const routes = [
   { path: "/", status: 200, policy: productionPolicy },
   { path: "/cnab-444", status: 200, policy: productionPolicy },
   { path: "/this-page-does-not-exist", status: 404, policy: productionPolicy },
   { path: "/api/remittances", status: 405, policy: apiPolicy },
-  { path: "/favicon.ico", status: 200, policy: undefined },
+  { path: "/this-file-does-not-exist.png", status: 404, policy: basePolicy },
+  { path: "/favicon.ico", status: 200, policy: basePolicy },
 ];
 
 function nonceOf(policy: string | undefined): string | undefined {
@@ -39,9 +43,7 @@ test.describe("security headers", () => {
       for (const [name, value] of Object.entries(staticHeaders)) {
         expect(headers[name], name).toBe(value);
       }
-      if (policy) {
-        expect(headers["content-security-policy"]).toMatch(policy);
-      }
+      expect(headers["content-security-policy"]).toMatch(policy);
       expect(headers["x-powered-by"]).toBeUndefined();
       expect(headers["strict-transport-security"]).toBeUndefined();
     });

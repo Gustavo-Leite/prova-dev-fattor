@@ -53,7 +53,11 @@ renderizar) e na resposta; é a fonte única de CSP, removida do `next.config.ts
 - (+) Um único lugar define a CSP das páginas; o `next.config.ts` mantém os demais cabeçalhos e
   a CSP estática da API.
 - (−) Toda página fica dinâmica (já era, por tema e idioma em cookie).
-- (−) Arquivos estáticos não recebem CSP; não executam scripts, então não há perda.
+- (−) Caminhos excluídos do _matcher_ por extensão não recebem a CSP com _nonce_. Recebem a
+  CSP-base do `next.config.ts` (`object-src 'none'; base-uri 'self'; form-action 'self';
+frame-ancestors 'none'`), sem `script-src`, porque a 404 em HTML de um caminho como
+  `/x.png` tem scripts inline sem _nonce_. Nas páginas, o proxy substitui esse valor (um único
+  cabeçalho, verificado no build de produção); na API, a regra posterior vence.
 - (−) O guia cita `unstable_doesProxyMatch`, mas o Next 16.3.6 instalado só exporta
   `unstable_doesMiddlewareMatch`; o teste usa o nome do pacote e precisa mudar quando ele mudar.
   Os testes do proxy também leem cabeçalhos internos (`x-middleware-request-*`,
@@ -67,6 +71,7 @@ renderizar) e na resposta; é a fonte única de CSP, removida do `next.config.ts
   [`src/lib/content-security-policy.ts`](../../src/lib/content-security-policy.ts) (função pura
   testada nos dois modos) e testes do _matcher_.
 - E2E [`tests/e2e/security-headers.spec.ts`](../../tests/e2e/security-headers.spec.ts): política
-  com _nonce_, _nonce_ novo a cada documento, CSP estática na API e zero violações no fluxo
+  com _nonce_, _nonce_ novo a cada documento, CSP estática na API, CSP-base nos caminhos fora do
+  _matcher_ e zero violações no fluxo
   principal (tema, upload, diálogo, layout).
 - Documentação do Next.js: guia de Content Security Policy e `proxy.ts`.
