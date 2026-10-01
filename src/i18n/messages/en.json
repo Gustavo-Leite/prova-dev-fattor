@@ -58,7 +58,7 @@
       "searchHint": "Type any part of the key; spaces, dots and dashes are ignored.",
       "clear": "Clear filters",
       "noMatches": "No receivable matches the filters.",
-      "digitsOnly": "Access keys only have digits.",
+      "invalidCharacters": "Access keys only have digits and letters.",
       "matches": "{count, plural, =0 {No receivables found.} one {# receivable found.} other {# receivables found.}}"
     },
     "export": {

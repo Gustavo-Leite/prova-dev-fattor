@@ -156,8 +156,10 @@ test.describe("results list (pt-BR)", () => {
     await expect(visibleRows(page)).toHaveCount(1);
     await expect(visibleRowFor(page, target)).toBeVisible();
 
-    await searchBox(page).fill("abc");
-    await expect(resultsSection(page).getByText("A chave de acesso tem só números.")).toBeVisible();
+    await searchBox(page).fill("ab*c");
+    await expect(
+      resultsSection(page).getByText("A chave de acesso tem só números e letras."),
+    ).toBeVisible();
     await expect(visibleRows(page)).toHaveCount(0);
 
     const clear = resultsSection(page).getByRole("button", { name: "Limpar filtros" });
@@ -208,7 +210,7 @@ test.describe("results list (pt-BR)", () => {
     await expect(resultsSection(page).getByText("30 de 30 consultados")).toBeVisible();
     await expect(button).not.toHaveAttribute("aria-disabled", "true");
 
-    await searchBox(page).fill("abc");
+    await searchBox(page).fill("ZZZZ");
     await expect(exportButton(page, "Exportar 0 títulos (CSV)")).toHaveAttribute(
       "aria-disabled",
       "true",

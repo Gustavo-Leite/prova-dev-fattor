@@ -23,17 +23,20 @@ export const summaryOrder: readonly RowTone[] = [
 
 export type NormalizedQuery =
   | { readonly kind: "any" }
-  | { readonly kind: "digits"; readonly digits: string }
+  | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "invalid" };
 
 const keySeparators = /[\s./-]/g;
+const asciiKeyCharacters = /^[0-9A-Za-z]+$/;
 
 export function normalizeQuery(input: string): NormalizedQuery {
-  const digits = input.replace(keySeparators, "");
-  if (digits === "") {
+  const compact = input.replace(keySeparators, "");
+  if (compact === "") {
     return { kind: "any" };
   }
-  return /^\d+$/.test(digits) ? { kind: "digits", digits } : { kind: "invalid" };
+  return asciiKeyCharacters.test(compact)
+    ? { kind: "text", text: compact.toUpperCase() }
+    : { kind: "invalid" };
 }
 
 export type SortColumn = "ordinal" | "key" | "status";
@@ -82,8 +85,8 @@ function matchesQuery(row: ReceivableRow, query: NormalizedQuery): boolean {
   switch (query.kind) {
     case "any":
       return true;
-    case "digits":
-      return row.invoiceAccessKey.includes(query.digits);
+    case "text":
+      return row.invoiceAccessKey.includes(query.text);
     case "invalid":
       return false;
   }

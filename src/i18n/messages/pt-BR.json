@@ -58,7 +58,7 @@
       "searchHint": "Digite qualquer parte da chave; espaços, pontos e traços são ignorados.",
       "clear": "Limpar filtros",
       "noMatches": "Nenhum título corresponde aos filtros.",
-      "digitsOnly": "A chave de acesso tem só números.",
+      "invalidCharacters": "A chave de acesso tem só números e letras.",
       "matches": "{count, plural, =0 {Nenhum título encontrado.} one {# título encontrado.} other {# títulos encontrados.}}"
     },
     "export": {

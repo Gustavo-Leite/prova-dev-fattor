@@ -53,7 +53,7 @@ export function ResultsToolbar({
             ref={searchInput}
             id={searchId}
             type="search"
-            inputMode="numeric"
+            autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}
             aria-describedby={hintId}

@@ -184,7 +184,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
 
             {visible.filteredCount === 0 ? (
               <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground md:m-4">
-                {visible.hasInvalidQuery ? t("filters.digitsOnly") : t("filters.noMatches")}
+                {visible.hasInvalidQuery ? t("filters.invalidCharacters") : t("filters.noMatches")}
               </p>
             ) : (
               <>

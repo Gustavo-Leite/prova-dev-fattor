@@ -51,15 +51,39 @@ describe("normalizeQuery", () => {
     expect(normalizeQuery(input)).toEqual({ kind: "any" });
   });
 
-  it("keeps only the digits of a key typed with separators", () => {
+  it("drops the separators of a key typed with them", () => {
     expect(normalizeQuery(" 3524 0300.0000-0001/99 ")).toEqual({
-      kind: "digits",
-      digits: "352403000000000199",
+      kind: "text",
+      text: "352403000000000199",
     });
   });
 
-  it.each(["abc", "35a24", "35,24"])("rejects %j because keys only have digits", (input) => {
-    expect(normalizeQuery(input)).toEqual({ kind: "invalid" });
+  it("accepts the letters of an alphanumeric issuer id in any case", () => {
+    expect(normalizeQuery("12.aBc-34")).toEqual({ kind: "text", text: "12ABC34" });
+  });
+
+  it.each(["35,24", "ab*c", "ç", "ß", "ı", "ﬁ"])(
+    "rejects %j because keys only have ASCII digits and letters",
+    (input) => {
+      expect(normalizeQuery(input)).toEqual({ kind: "invalid" });
+    },
+  );
+});
+
+describe("searching by access key", () => {
+  it("finds a key with letters from a lowercase query", () => {
+    const alphanumeric: ReceivableRow = {
+      ...row(2),
+      invoiceAccessKey: "352403AB12CD34EF5655001000000001123456789012",
+    };
+
+    const found = selectFilteredRows([row(3), alphanumeric], {
+      tones: new Set(),
+      query: "ab12 cd34",
+      sort: defaultSort,
+    });
+
+    expect(lines(found)).toEqual([2]);
   });
 });
 
@@ -97,8 +121,8 @@ describe("selectVisibleRows", () => {
     expect(visible).toMatchObject({ filteredCount: 0, pageCount: 1, from: 0, to: 0 });
   });
 
-  it("shows nothing for a search with letters and says why", () => {
-    const visible = selectVisibleRows(rows, { ...everything, query: "abc" });
+  it("shows nothing for a search with symbols and says why", () => {
+    const visible = selectVisibleRows(rows, { ...everything, query: "ab*c" });
     expect(visible.pageRows).toEqual([]);
     expect(visible.hasInvalidQuery).toBe(true);
     expect(selectVisibleRows(rows, everything).hasInvalidQuery).toBe(false);
