@@ -4,10 +4,7 @@ import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { AppBar } from "@/features/preferences/app-bar";
 import { isTheme, themeCookieName } from "@/lib/theme";
-
-import brandMark from "./icon.png";
 
 import "./globals.css";
 
@@ -41,11 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sora.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col desktop-tall:h-dvh" suppressHydrationWarning>
-        <AppBar locale={locale} theme={theme} logo={brandMark} />
-        <div
-          data-slot="page-scroller"
-          className="flex w-full flex-1 flex-col desktop-tall:scrollbar-gutter-stable desktop-tall:overflow-y-auto"
-        >
+        <div className="flex min-h-0 w-full flex-1 flex-col">
           <NextIntlClientProvider>{children}</NextIntlClientProvider>
         </div>
         <footer className="shrink-0 border-t px-4 py-3 text-center text-xs text-muted-foreground">
