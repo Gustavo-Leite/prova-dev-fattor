@@ -10,6 +10,7 @@ export type SubmitError =
   | { readonly code: "UNEXPECTED_RESPONSE"; readonly status: number }
   | { readonly code: "INVALID_REQUEST" }
   | { readonly code: "CROSS_SITE_REQUEST" }
+  | { readonly code: "SESSION_EXPIRED" }
   | { readonly code: "LENGTH_REQUIRED" }
   | { readonly code: "FILE_TOO_LARGE"; readonly maxBytes: number }
   | RemittanceRejection;
@@ -73,6 +74,7 @@ function toSubmitError(status: number, payload: unknown): SubmitError {
   switch (payload.code) {
     case "INVALID_REQUEST":
     case "CROSS_SITE_REQUEST":
+    case "SESSION_EXPIRED":
     case "LENGTH_REQUIRED":
       return { code: payload.code };
     case "FILE_TOO_LARGE":

@@ -137,6 +137,7 @@ describe("describeSubmitError", () => {
     { code: "UNEXPECTED_RESPONSE", status: 502 },
     { code: "INVALID_REQUEST" },
     { code: "CROSS_SITE_REQUEST" },
+    { code: "SESSION_EXPIRED" },
     { code: "LENGTH_REQUIRED" },
     { code: "FILE_TOO_LARGE", maxBytes: 131_072 },
     { code: "TOO_MANY_RECEIVABLES", max: 200, actual: 250 },
@@ -160,6 +161,16 @@ describe("describeSubmitError", () => {
     expect(
       render("pt-BR", describeSubmitError({ code: "UNEXPECTED_RESPONSE", status: 502 }).summary),
     ).toBe("O servidor respondeu de forma inesperada (código 502).");
+  });
+
+  it("asks to sign in again when the session has expired", () => {
+    const description = describeSubmitError({ code: "SESSION_EXPIRED" });
+    expect(render("pt-BR", description.summary)).toBe(
+      "Sua sessão expirou. Entre de novo para consultar.",
+    );
+    expect(render("en", description.summary)).toBe(
+      "Your session has expired. Sign in again to check.",
+    );
   });
 });
 

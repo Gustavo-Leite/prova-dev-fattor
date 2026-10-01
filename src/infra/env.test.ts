@@ -4,8 +4,6 @@ import { InvalidServerEnvError, parseServerEnv } from "@/infra/env";
 
 const validSource = {
   FATTOR_API_BASE_URL: "https://api.example.com/public/prova-dev",
-  FATTOR_API_EMAIL: "demo@example.com",
-  FATTOR_API_PASSWORD: "top-secret-value",
 };
 
 describe("parseServerEnv", () => {
@@ -13,8 +11,6 @@ describe("parseServerEnv", () => {
     expect(parseServerEnv(validSource)).toEqual({
       fattorApi: {
         baseUrl: "https://api.example.com/public/prova-dev",
-        email: "demo@example.com",
-        password: "top-secret-value",
       },
     });
   });
@@ -76,21 +72,9 @@ describe("parseServerEnv", () => {
     expect(env.fattorApi.baseUrl).toBe("https://api.example.com/p");
   });
 
-  it("rejects an invalid email", () => {
-    expect(() => parseServerEnv({ ...validSource, FATTOR_API_EMAIL: "not-an-email" })).toThrow(
-      "FATTOR_API_EMAIL",
-    );
-  });
-
-  it("rejects an empty password", () => {
-    expect(() => parseServerEnv({ ...validSource, FATTOR_API_PASSWORD: "" })).toThrow(
-      "FATTOR_API_PASSWORD",
-    );
-  });
-
   it("never includes variable values in the error message", () => {
     const secret = "leaked-secret-value";
-    const source = { ...validSource, FATTOR_API_EMAIL: secret, FATTOR_API_PASSWORD: secret };
+    const source = { ...validSource, FATTOR_API_BASE_URL: `http://${secret}.example.com` };
 
     expect(() => parseServerEnv(source)).toThrow(InvalidServerEnvError);
     try {
@@ -118,9 +102,9 @@ describe("getServerEnv", () => {
     const { getServerEnv } = await import("@/infra/env");
 
     const first = getServerEnv();
-    vi.stubEnv("FATTOR_API_EMAIL", "changed@example.com");
+    vi.stubEnv("FATTOR_API_BASE_URL", "https://changed.example.com");
 
     expect(getServerEnv()).toBe(first);
-    expect(first.fattorApi.email).toBe("demo@example.com");
+    expect(first.fattorApi.baseUrl).toBe("https://api.example.com/public/prova-dev");
   });
 });

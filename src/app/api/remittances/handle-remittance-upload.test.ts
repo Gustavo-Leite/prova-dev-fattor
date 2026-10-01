@@ -1,24 +1,41 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { NextRequest } from "next/server";
+import { describe, expect, it, vi } from "vitest";
 
 import { defaultRemittanceCheckPolicy } from "@/application/remittance/check-remittance";
 import type { InvoiceStatusGateway } from "@/application/remittance/invoice-status-gateway";
+import type { RemittanceUploadDependencies } from "@/app/api/remittances/handle-remittance-upload";
 import {
   createRemittanceUploadHandler,
   maxUploadBytes,
   multipartOverheadBytes,
 } from "@/app/api/remittances/handle-remittance-upload";
+import { POST } from "@/app/api/remittances/route";
+import { createFattorStatusGateway } from "@/infra/fattor/fattor-status-gateway";
+
+const routeBaseUrl = "https://fattor.test/public/prova-dev";
+
+vi.mock("@/infra/env", () => ({
+  getServerEnv: () => ({ fattorApi: { baseUrl: "https://fattor.test/public/prova-dev" } }),
+}));
+
+vi.mock("@/infra/fattor/fattor-status-gateway", () => ({
+  createFattorStatusGateway: vi.fn((): InvoiceStatusGateway => ({
+    findStatus: () => Promise.resolve("authorized"),
+  })),
+}));
 
 const sampleFilePath = path.join(import.meta.dirname, "../../../../_prova/meu_cnab.rem");
 const endpoint = "http://localhost/api/remittances";
+const sessionToken = "user-session-token";
 
 function trackingGateway(
   findStatus: InvoiceStatusGateway["findStatus"] = () => Promise.resolve("authorized"),
 ) {
   const signals: AbortSignal[] = [];
-  let created = 0;
+  const tokens: string[] = [];
   const gateway: InvoiceStatusGateway = {
     findStatus(key, signal) {
       signals.push(signal);
@@ -26,13 +43,19 @@ function trackingGateway(
     },
   };
   return {
-    getGateway: () => {
-      created++;
+    getGateway: (token: string) => {
+      tokens.push(token);
       return gateway;
     },
     signals,
-    created: () => created,
+    tokens,
+    created: () => tokens.length,
   };
+}
+
+function uploadHandler(dependencies: RemittanceUploadDependencies) {
+  const handleRemittanceUpload = createRemittanceUploadHandler(dependencies);
+  return (request: Request) => handleRemittanceUpload(request, sessionToken);
 }
 
 async function uploadRequest(
@@ -83,7 +106,7 @@ describe("remittance upload limits documented in docs/api.md", () => {
 describe("remittance upload request checks", () => {
   it.each(["cross-site", "same-site"])("refuses a request sent from a %s page", async (site) => {
     const tracker = trackingGateway();
-    const handler = createRemittanceUploadHandler(tracker);
+    const handler = uploadHandler(tracker);
     const response = await handler(
       await uploadRequest(sampleFile, { headers: { "sec-fetch-site": site } }),
     );
@@ -94,12 +117,124 @@ describe("remittance upload request checks", () => {
   });
 
   it.each(["same-origin", "none"])("accepts a request whose fetch site is %s", async (site) => {
-    const handler = createRemittanceUploadHandler(trackingGateway());
+    const handler = uploadHandler(trackingGateway());
     const response = await handler(
       await uploadRequest(sampleFile, { headers: { "sec-fetch-site": site } }),
     );
     expect(response.status).toBe(200);
     await response.body?.cancel();
+  });
+
+  it.each([
+    ["the opaque origin", "null", "localhost:3000"],
+    ["another host", "https://evil.example", "localhost:3000"],
+    ["another port", "http://localhost:4000", "localhost:3000"],
+    ["something that is not a URL", "not a url", "localhost:3000"],
+  ])("refuses a request whose Origin is %s", async (_description, origin, host) => {
+    const tracker = trackingGateway();
+    const request = await uploadRequest(sampleFile, { headers: { origin, host } });
+    const response = await uploadHandler(tracker)(request);
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({ code: "CROSS_SITE_REQUEST" });
+    expect(request.bodyUsed).toBe(false);
+    expect(tracker.created()).toBe(0);
+  });
+
+  it("refuses a cross-origin request before looking at the session", async () => {
+    const response = await createRemittanceUploadHandler(trackingGateway())(
+      await uploadRequest(sampleFile, {
+        headers: { origin: "https://evil.example", host: "localhost:3000" },
+      }),
+      undefined,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it.each([
+    ["one value", "app.example.com"],
+    ["several values, using the first", "app.example.com, internal:3000"],
+  ])(
+    "compares the Origin with the forwarded host behind a proxy, given %s",
+    async (_description, forwardedHost) => {
+      const response = await uploadHandler(trackingGateway())(
+        await uploadRequest(sampleFile, {
+          headers: {
+            origin: "https://app.example.com",
+            host: "internal:3000",
+            "x-forwarded-host": forwardedHost,
+          },
+        }),
+      );
+      expect(response.status).toBe(200);
+      await response.body?.cancel();
+    },
+  );
+
+  it("refuses an Origin that only matches the Host when a forwarded host is present", async () => {
+    const response = await uploadHandler(trackingGateway())(
+      await uploadRequest(sampleFile, {
+        headers: {
+          origin: "http://internal:3000",
+          host: "internal:3000",
+          "x-forwarded-host": "app.example.com",
+        },
+      }),
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it.each([
+    ["with the same host", { origin: "http://localhost:3000", host: "localhost:3000" }],
+    ["from an IPv6 host", { origin: "http://[::1]:3000", host: "[::1]:3000" }],
+    ["on the default port", { origin: "https://app.example.com", host: "app.example.com" }],
+    ["whose Host is in uppercase", { origin: "http://localhost:3000", host: "LOCALHOST:3000" }],
+    ["without an Origin", {}],
+  ])("accepts a request %s", async (_description, headers) => {
+    const response = await uploadHandler(trackingGateway())(
+      await uploadRequest(sampleFile, { headers }),
+    );
+    expect(response.status).toBe(200);
+    await response.body?.cancel();
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["empty", ""],
+    ["malformed", "\n"],
+  ])("asks to sign in again when the session cookie is %s", async (_description, token) => {
+    const tracker = trackingGateway();
+    const request = await uploadRequest(sampleFile);
+    const response = await createRemittanceUploadHandler(tracker)(request, token);
+    expect(response.status).toBe(401);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({ code: "SESSION_EXPIRED" });
+    expect(request.bodyUsed).toBe(false);
+    expect(tracker.created()).toBe(0);
+  });
+
+  it("checks the statuses with the token of the session cookie", async () => {
+    const tracker = trackingGateway();
+    const response = await createRemittanceUploadHandler(tracker)(
+      await uploadRequest(sampleFile),
+      "another-session-token",
+    );
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(tracker.tokens).toEqual(["another-session-token"]);
+  });
+
+  it("wires the route to a gateway built with the session cookie and the API base URL", async () => {
+    const request = await uploadRequest(sampleFile, {
+      headers: { cookie: "session=route-session-token" },
+    });
+    const response = await POST(new NextRequest(request));
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(createFattorStatusGateway).toHaveBeenCalledWith({
+      baseUrl: routeBaseUrl,
+      token: "route-session-token",
+    });
   });
 
   it.each([
@@ -113,9 +248,7 @@ describe("remittance upload request checks", () => {
     } else {
       headers.set("content-length", value);
     }
-    const response = await createRemittanceUploadHandler(trackingGateway())(
-      new Request(request, { headers }),
-    );
+    const response = await uploadHandler(trackingGateway())(new Request(request, { headers }));
     expect(response.status).toBe(411);
     expect(await response.json()).toEqual({ code: "LENGTH_REQUIRED" });
   });
@@ -129,7 +262,7 @@ describe("remittance upload request checks", () => {
         "content-length": String(maxUploadBytes + multipartOverheadBytes + 1),
       },
     });
-    const response = await createRemittanceUploadHandler(trackingGateway())(request);
+    const response = await uploadHandler(trackingGateway())(request);
     expect(response.status).toBe(413);
     expect(await response.json()).toEqual({ code: "FILE_TOO_LARGE", maxBytes: maxUploadBytes });
     expect(request.bodyUsed).toBe(false);
@@ -139,7 +272,7 @@ describe("remittance upload request checks", () => {
     [maxUploadBytes, 422],
     [maxUploadBytes + 1, 413],
   ])("with a %i byte file answers %i", async (size, status) => {
-    const response = await createRemittanceUploadHandler(trackingGateway())(
+    const response = await uploadHandler(trackingGateway())(
       await uploadRequest(new Uint8Array(size).fill(0x30)),
     );
     expect(response.status).toBe(status);
@@ -147,7 +280,7 @@ describe("remittance upload request checks", () => {
 
   it("refuses a body that is not multipart", async () => {
     const body = JSON.stringify({ file: "x" });
-    const response = await createRemittanceUploadHandler(trackingGateway())(
+    const response = await uploadHandler(trackingGateway())(
       new Request(endpoint, {
         method: "POST",
         body,
@@ -162,7 +295,7 @@ describe("remittance upload request checks", () => {
     ["without a file", null, "file"],
     ["with the file under another field", "0", "document"],
   ])("refuses a form %s", async (_description, content, field) => {
-    const response = await createRemittanceUploadHandler(trackingGateway())(
+    const response = await uploadHandler(trackingGateway())(
       await uploadRequest(content, { field }),
     );
     expect(response.status).toBe(400);
@@ -175,7 +308,7 @@ describe("remittance upload request checks", () => {
     const encoded = new Response(form);
     const body = new Uint8Array(await encoded.arrayBuffer());
     const tracker = trackingGateway();
-    const response = await createRemittanceUploadHandler(tracker)(
+    const response = await uploadHandler(tracker)(
       new Request(endpoint, {
         method: "POST",
         body,
@@ -194,7 +327,7 @@ describe("remittance upload request checks", () => {
     const headers = new Headers(request.headers);
     headers.set("content-length", String(maxUploadBytes + multipartOverheadBytes));
     const body = new Uint8Array(await request.arrayBuffer());
-    const response = await createRemittanceUploadHandler(trackingGateway())(
+    const response = await uploadHandler(trackingGateway())(
       new Request(endpoint, { method: "POST", body, headers }),
     );
     expect(response.status).not.toBe(413);
@@ -206,7 +339,7 @@ describe("remittance upload request checks", () => {
     form.set("file", "0".repeat(444));
     const encoded = new Response(form);
     const body = new Uint8Array(await encoded.arrayBuffer());
-    const response = await createRemittanceUploadHandler(trackingGateway())(
+    const response = await uploadHandler(trackingGateway())(
       new Request(endpoint, {
         method: "POST",
         body,
@@ -223,9 +356,7 @@ describe("remittance upload request checks", () => {
 describe("remittance upload validation", () => {
   it("answers 422 with the parser errors for an invalid file", async () => {
     const tracker = trackingGateway();
-    const response = await createRemittanceUploadHandler(tracker)(
-      await uploadRequest("not a remittance\n"),
-    );
+    const response = await uploadHandler(tracker)(await uploadRequest("not a remittance\n"));
     expect(response.status).toBe(422);
     expect(await response.json()).toMatchObject({ code: "INVALID_FILE", truncated: false });
     expect(tracker.created()).toBe(1);
@@ -233,7 +364,7 @@ describe("remittance upload validation", () => {
   });
 
   it("answers 422 when the file has more receivables than allowed", async () => {
-    const handler = createRemittanceUploadHandler({
+    const handler = uploadHandler({
       ...trackingGateway(),
       policy: { ...defaultRemittanceCheckPolicy, maxReceivables: 5 },
     });
@@ -245,9 +376,7 @@ describe("remittance upload validation", () => {
 
 describe("remittance upload streaming", () => {
   it("streams one line per receivable between started and completed", async () => {
-    const response = await createRemittanceUploadHandler(trackingGateway())(
-      await uploadRequest(sampleFile),
-    );
+    const response = await uploadHandler(trackingGateway())(await uploadRequest(sampleFile));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/x-ndjson; charset=utf-8");
@@ -266,9 +395,7 @@ describe("remittance upload streaming", () => {
   });
 
   it("sends only the protocol fields, never the raw record lines", async () => {
-    const response = await createRemittanceUploadHandler(trackingGateway())(
-      await uploadRequest(sampleFile),
-    );
+    const response = await uploadHandler(trackingGateway())(await uploadRequest(sampleFile));
 
     const results = (await readLines(response)).slice(1, -1);
 
@@ -297,7 +424,7 @@ describe("remittance upload streaming", () => {
           );
         }),
     );
-    const response = await createRemittanceUploadHandler(tracker)(await uploadRequest(sampleFile));
+    const response = await uploadHandler(tracker)(await uploadRequest(sampleFile));
     const reader = response.body?.getReader();
     await reader?.read();
     const pendingRead = reader?.read();
@@ -324,7 +451,7 @@ describe("remittance upload streaming", () => {
           );
         }),
     );
-    const response = await createRemittanceUploadHandler(tracker)(
+    const response = await uploadHandler(tracker)(
       await uploadRequest(sampleFile, { signal: controller.signal }),
     );
     setTimeout(() => {

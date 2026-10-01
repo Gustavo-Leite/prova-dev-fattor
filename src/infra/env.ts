@@ -17,14 +17,10 @@ const serverEnvSchema = z
         const url = new URL(value);
         return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
       }),
-    FATTOR_API_EMAIL: z.email(),
-    FATTOR_API_PASSWORD: z.string().min(1),
   })
   .transform((env) => ({
     fattorApi: {
       baseUrl: env.FATTOR_API_BASE_URL,
-      email: env.FATTOR_API_EMAIL,
-      password: env.FATTOR_API_PASSWORD,
     },
   }));
 

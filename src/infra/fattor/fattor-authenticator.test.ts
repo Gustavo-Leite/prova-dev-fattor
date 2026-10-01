@@ -161,6 +161,18 @@ describe("createFattorAuthenticator", () => {
     await expect(signIn()).resolves.toEqual({ kind: "unavailable" });
   });
 
+  it.each([
+    ["a space", "T 1"],
+    ["a line feed", "T1\n"],
+    ["a non-ASCII character", "Té1"],
+  ])(
+    "refuses a token with %s, which the session cookie could not hold",
+    async (_description, token) => {
+      server.use(loginAnswering(() => HttpResponse.json({ token, expires_in: 3600 })).handler);
+      await expect(signIn()).resolves.toEqual({ kind: "unavailable" });
+    },
+  );
+
   it("refuses a body declared larger than the limit without reading it", async () => {
     server.use(
       loginAnswering(

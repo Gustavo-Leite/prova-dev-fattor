@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { config, proxy } from "@/proxy";
 
 const nonceSource = /'nonce-([A-Za-z0-9+/=]+)'/;
+const sessionCookie = "session=user-session-token";
 
 function nonceOf(policy: string | null): string | undefined {
   return policy?.match(nonceSource)?.[1];
@@ -12,6 +13,13 @@ function nonceOf(policy: string | null): string | undefined {
 
 function forwardedPolicyOf(response: Response): string | null {
   return response.headers.get("x-middleware-request-content-security-policy");
+}
+
+function signedInRequest(
+  url = "http://localhost/",
+  { headers = {}, method }: { headers?: Record<string, string>; method?: string } = {},
+): NextRequest {
+  return new NextRequest(url, { method, headers: { cookie: sessionCookie, ...headers } });
 }
 
 describe("proxy matcher", () => {
@@ -48,7 +56,7 @@ describe("proxy matcher", () => {
 
 describe("proxy", () => {
   it("sends the same nonce-based policy to the page and to the browser", () => {
-    const response = proxy(new NextRequest("http://localhost/"));
+    const response = proxy(signedInRequest());
 
     const policy = response.headers.get("content-security-policy");
     expect(nonceOf(policy)).toBeDefined();
@@ -57,7 +65,7 @@ describe("proxy", () => {
   });
 
   it("keeps the strict policy outside development", () => {
-    const response = proxy(new NextRequest("http://localhost/"));
+    const response = proxy(signedInRequest());
 
     expect(response.headers.get("content-security-policy")).not.toContain("'unsafe-eval'");
     expect(response.headers.get("content-security-policy")).toMatch(
@@ -67,15 +75,19 @@ describe("proxy", () => {
 
   it("forwards the client's own headers to the route", () => {
     const response = proxy(
-      new NextRequest("http://localhost/", { headers: { cookie: "theme=dark" } }),
+      new NextRequest("http://localhost/", {
+        headers: { cookie: `theme=dark; ${sessionCookie}` },
+      }),
     );
 
-    expect(response.headers.get("x-middleware-request-cookie")).toBe("theme=dark");
+    expect(response.headers.get("x-middleware-request-cookie")).toBe(
+      `theme=dark; ${sessionCookie}`,
+    );
   });
 
   it("draws a new nonce for every request", () => {
-    const first = proxy(new NextRequest("http://localhost/"));
-    const second = proxy(new NextRequest("http://localhost/"));
+    const first = proxy(signedInRequest());
+    const second = proxy(signedInRequest());
 
     expect(nonceOf(first.headers.get("content-security-policy"))).not.toBe(
       nonceOf(second.headers.get("content-security-policy")),
@@ -85,9 +97,7 @@ describe("proxy", () => {
   it("overwrites a policy sent by the client", () => {
     const forged = "script-src 'nonce-forged'";
     const response = proxy(
-      new NextRequest("http://localhost/", {
-        headers: { "content-security-policy": forged },
-      }),
+      signedInRequest("http://localhost/", { headers: { "content-security-policy": forged } }),
     );
 
     expect(forwardedPolicyOf(response)).not.toBe(forged);
@@ -96,9 +106,69 @@ describe("proxy", () => {
   });
 
   it("continues to the route without a body of its own", () => {
-    const response = proxy(new NextRequest("http://localhost/", { method: "POST" }));
+    const response = proxy(signedInRequest("http://localhost/", { method: "POST" }));
 
     expect(response.headers.get("x-middleware-next")).toBe("1");
     expect(response.body).toBeNull();
+  });
+});
+
+describe("proxy session guard", () => {
+  it.each([
+    ["without a session cookie", new NextRequest("http://localhost/")],
+    [
+      "with a malformed session cookie",
+      new NextRequest("http://localhost/", { headers: { cookie: "session=a b" } }),
+    ],
+    [
+      "with an empty session cookie",
+      new NextRequest("http://localhost/", { headers: { cookie: "session=" } }),
+    ],
+  ])("sends the home page to the login page %s", (_description, request) => {
+    const response = proxy(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost/login");
+    expect(response.headers.get("x-middleware-next")).toBeNull();
+  });
+
+  it("redirects a prefetch of the home page without a session", () => {
+    const response = proxy(
+      new NextRequest("http://localhost/", {
+        headers: { rsc: "1", "next-router-prefetch": "1" },
+      }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost/login");
+  });
+
+  it("keeps the content security policy on the redirect", () => {
+    const response = proxy(new NextRequest("http://localhost/"));
+
+    expect(nonceOf(response.headers.get("content-security-policy"))).toBeDefined();
+  });
+
+  it("opens the home page with a well-formed session cookie", () => {
+    const response = proxy(signedInRequest());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it.each(["/cnab-444", "/login", "/this-page-does-not-exist"])(
+    "lets %s through without a session",
+    (path) => {
+      const response = proxy(new NextRequest(new URL(path, "http://localhost")));
+
+      expect(response.headers.get("location")).toBeNull();
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+    },
+  );
+
+  it("guards the home page even with a query string", () => {
+    const response = proxy(new NextRequest("http://localhost/?file=x"));
+
+    expect(response.headers.get("location")).toBe("http://localhost/login");
   });
 });

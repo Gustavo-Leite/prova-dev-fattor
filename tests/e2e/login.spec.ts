@@ -5,6 +5,8 @@ import { expect, test } from "@playwright/test";
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const apiDocumentationUrl = "https://symphony.fattorcredito.com.br/public/prova-dev/swagger";
 
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const copy = {
   title: "Entrar",
   invalidEmail: "Informe um e-mail válido, como nome@empresa.com.br.",

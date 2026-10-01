@@ -6,16 +6,11 @@ import type {
 } from "@/application/remittance/invoice-status-gateway";
 import { InvoiceStatusLookupError } from "@/application/remittance/invoice-status-gateway";
 import type { InvoiceStatus } from "@/domain/invoice/invoice-status";
-import type { FattorCredentials, FattorLogin } from "@/infra/fattor/fattor-api.contract";
-import {
-  parseLoginResponse,
-  parseStatusResponse,
-  toLoginRequestBody,
-} from "@/infra/fattor/fattor-api.contract";
-import { createFattorSession } from "@/infra/fattor/fattor-session";
+import { parseStatusResponse } from "@/infra/fattor/fattor-api.contract";
 
-export interface FattorApiConfig extends FattorCredentials {
+export interface FattorStatusGatewayConfig {
   readonly baseUrl: string;
+  readonly token: string;
 }
 
 export interface FattorGatewayOptions {
@@ -23,7 +18,6 @@ export interface FattorGatewayOptions {
   readonly retries?: number;
   readonly retryBaseDelayMs?: number;
   readonly maxRetryDelayMs?: number;
-  readonly loginTimeoutMs?: number;
   readonly random?: () => number;
   readonly now?: () => number;
 }
@@ -38,12 +32,9 @@ const defaultOptions = {
   retries: 2,
   retryBaseDelayMs: 200,
   maxRetryDelayMs: 5_000,
-  loginTimeoutMs: 10_000,
   random: Math.random,
   now: Date.now,
 } satisfies Required<FattorGatewayOptions>;
-
-const rejectedCredentialStatuses = new Set([400, 401, 403]);
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
@@ -105,7 +96,7 @@ function parseJson(text: string): unknown {
 }
 
 export function createFattorStatusGateway(
-  config: FattorApiConfig,
+  config: FattorStatusGatewayConfig,
   gatewayOptions: FattorGatewayOptions = {},
 ): InvoiceStatusGateway {
   const options = { ...defaultOptions, ...gatewayOptions };
@@ -160,72 +151,26 @@ export function createFattorStatusGateway(
     throw new InvoiceStatusLookupError(failure, { cause: lastCause });
   };
 
-  const login = async (): Promise<FattorLogin> => {
-    const budget = new AbortController();
-    const timer = setTimeout(() => {
-      budget.abort();
-    }, options.loginTimeoutMs);
-    try {
-      const reply = await send(
-        `${config.baseUrl}/login`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: toLoginRequestBody(config),
-        },
-        budget.signal,
-      );
-      if (rejectedCredentialStatuses.has(reply.status)) {
-        throw new InvoiceStatusLookupError("UPSTREAM_REJECTED_CREDENTIALS");
-      }
-      if (!isSuccessStatus(reply.status)) {
-        throw new InvoiceStatusLookupError("UPSTREAM_UNAVAILABLE");
-      }
-      const parsed = parseLoginResponse(reply.body);
-      if (!parsed) {
-        throw new InvoiceStatusLookupError("UPSTREAM_INVALID_RESPONSE");
-      }
-      return parsed;
-    } catch (error) {
-      if (budget.signal.aborted) {
-        throw new InvoiceStatusLookupError("UPSTREAM_TIMEOUT", { cause: error });
-      }
-      throw error;
-    } finally {
-      clearTimeout(timer);
-    }
-  };
-
-  const session = createFattorSession({ login, now: options.now });
-
   const findStatus = async (
     invoiceAccessKey: string,
     signal: AbortSignal,
   ): Promise<InvoiceStatus> => {
-    const url = `${config.baseUrl}/status/${encodeURIComponent(invoiceAccessKey)}`;
-    for (let isRetryAfterLogin = false; ; isRetryAfterLogin = true) {
-      const token = await abortable(session.getToken(), signal);
-      const reply = await send(
-        url,
-        { headers: { authorization: `Bearer ${token}`, accept: "application/json" } },
-        signal,
-      );
-      if (reply.status === 401) {
-        if (isRetryAfterLogin) {
-          throw new InvoiceStatusLookupError("UPSTREAM_REJECTED_CREDENTIALS");
-        }
-        session.invalidate(token);
-        continue;
-      }
-      if (!isSuccessStatus(reply.status)) {
-        throw new InvoiceStatusLookupError("UPSTREAM_UNAVAILABLE");
-      }
-      const parsed = parseStatusResponse(reply.body);
-      if (parsed?.invoiceAccessKey !== invoiceAccessKey) {
-        throw new InvoiceStatusLookupError("UPSTREAM_INVALID_RESPONSE");
-      }
-      return parsed.status;
+    const reply = await send(
+      `${config.baseUrl}/status/${encodeURIComponent(invoiceAccessKey)}`,
+      { headers: { authorization: `Bearer ${config.token}`, accept: "application/json" } },
+      signal,
+    );
+    if (reply.status === 401) {
+      throw new InvoiceStatusLookupError("UPSTREAM_REJECTED_CREDENTIALS");
     }
+    if (!isSuccessStatus(reply.status)) {
+      throw new InvoiceStatusLookupError("UPSTREAM_UNAVAILABLE");
+    }
+    const parsed = parseStatusResponse(reply.body);
+    if (parsed?.invoiceAccessKey !== invoiceAccessKey) {
+      throw new InvoiceStatusLookupError("UPSTREAM_INVALID_RESPONSE");
+    }
+    return parsed.status;
   };
 
   return { findStatus };

@@ -6,6 +6,8 @@ import type {
   SignInCredentials,
   SignInResult,
 } from "@/application/session/authenticator";
+import { maxTokenLength } from "@/infra/fattor/fattor-api.contract";
+import { maxSessionTokenLength } from "@/lib/session-cookie";
 
 const password = "S3cret-Value!";
 
@@ -92,5 +94,11 @@ describe("submitSignIn", () => {
       state: { fieldErrors: { password: "tooLong" } },
     });
     expect(JSON.stringify(outcome)).not.toContain(password);
+  });
+});
+
+describe("session token limits", () => {
+  it("lets the session cookie hold any token the login accepts", () => {
+    expect(maxSessionTokenLength).toBe(maxTokenLength);
   });
 });

@@ -142,7 +142,7 @@ test.describe("status check (pt-BR)", () => {
     );
   });
 
-  test("explains a rejection of the server credentials", async ({ page }) => {
+  test("explains a rejection of the session", async ({ page }) => {
     await page.route(
       "**/api/remittances",
       fulfillStream(
@@ -156,7 +156,7 @@ test.describe("status check (pt-BR)", () => {
     await chooseSample(page);
 
     await expect(resultsSection(page).getByRole("alert")).toContainText(
-      "A API da Fattor recusou as credenciais do servidor",
+      "A API da Fattor recusou a sessão",
     );
     await expect(page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
   });

@@ -8,12 +8,13 @@ import {
   defaultRemittanceCheckPolicy,
 } from "@/application/remittance/check-remittance";
 import type { InvoiceStatusGateway } from "@/application/remittance/invoice-status-gateway";
+import { readSessionToken } from "@/lib/session-cookie";
 
 export const maxUploadBytes = 128 * 1024;
 export const multipartOverheadBytes = 16 * 1024;
 
 export interface RemittanceUploadDependencies {
-  readonly getGateway: () => InvoiceStatusGateway;
+  readonly getGateway: (token: string) => InvoiceStatusGateway;
   readonly maxUploadBytes?: number;
   readonly policy?: RemittanceCheckPolicy;
 }
@@ -54,6 +55,26 @@ function toNdjsonStream(
   });
 }
 
+function isCrossSiteRequest(headers: Headers): boolean {
+  const fetchSite = headers.get("sec-fetch-site");
+  if (fetchSite !== null && !allowedFetchSites.has(fetchSite)) {
+    return true;
+  }
+  const origin = headers.get("origin");
+  if (origin === null) {
+    return false;
+  }
+  const forwardedHost = headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const expectedHost = (
+    forwardedHost === undefined || forwardedHost === "" ? headers.get("host") : forwardedHost
+  )?.toLowerCase();
+  try {
+    return new URL(origin).host !== expectedHost;
+  } catch {
+    return true;
+  }
+}
+
 async function readUploadedFile(request: Request): Promise<File | null> {
   try {
     const files = (await request.formData()).getAll("file");
@@ -68,10 +89,16 @@ export function createRemittanceUploadHandler(dependencies: RemittanceUploadDepe
   const uploadLimit = dependencies.maxUploadBytes ?? maxUploadBytes;
   const policy = dependencies.policy ?? defaultRemittanceCheckPolicy;
 
-  return async function handleRemittanceUpload(request: Request): Promise<Response> {
-    const fetchSite = request.headers.get("sec-fetch-site");
-    if (fetchSite !== null && !allowedFetchSites.has(fetchSite)) {
+  return async function handleRemittanceUpload(
+    request: Request,
+    sessionToken: string | undefined,
+  ): Promise<Response> {
+    if (isCrossSiteRequest(request.headers)) {
       return errorResponse(403, { code: "CROSS_SITE_REQUEST" });
+    }
+    const token = readSessionToken(sessionToken);
+    if (token === null) {
+      return errorResponse(401, { code: "SESSION_EXPIRED" });
     }
     const contentLength = request.headers.get("content-length");
     if (contentLength === null || !contentLengthPattern.test(contentLength)) {
@@ -92,7 +119,7 @@ export function createRemittanceUploadHandler(dependencies: RemittanceUploadDepe
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     const stopChecks = new AbortController();
-    const check = checkRemittance(bytes, dependencies.getGateway(), {
+    const check = checkRemittance(bytes, dependencies.getGateway(token), {
       signal: AbortSignal.any([request.signal, stopChecks.signal]),
       policy,
     });

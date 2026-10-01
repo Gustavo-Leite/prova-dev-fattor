@@ -1,6 +1,40 @@
 import { describe, expect, it } from "vitest";
 
-import { maxSessionSeconds, sessionCookieName, sessionCookieOptions } from "@/lib/session-cookie";
+import {
+  maxSessionSeconds,
+  maxSessionTokenLength,
+  readSessionToken,
+  sessionCookieName,
+  sessionCookieOptions,
+} from "@/lib/session-cookie";
+
+describe("readSessionToken", () => {
+  it.each([
+    ["an opaque token", "abc.DEF-123_~"],
+    ["the longest token allowed", "t".repeat(4000)],
+    ["printable ASCII punctuation", "!#$%&'()*+,-./:;<=>?@[]^`{|}"],
+  ])("accepts %s", (_description, value) => {
+    expect(readSessionToken(value)).toBe(value);
+  });
+
+  it.each([
+    ["a missing cookie", undefined],
+    ["an empty cookie", ""],
+    ["a line feed", "\n"],
+    ["a carriage return", "token\rvalue"],
+    ["a space", "token value"],
+    ["a tab", "token\tvalue"],
+    ["a non-ASCII character", "tokené"],
+    ["a DEL character", "token\u007f"],
+    ["a token above the limit", "t".repeat(4001)],
+  ])("rejects %s", (_description, value) => {
+    expect(readSessionToken(value)).toBeNull();
+  });
+
+  it("allows tokens as long as the login response does", () => {
+    expect(maxSessionTokenLength).toBe(4000);
+  });
+});
 
 describe("sessionCookieOptions", () => {
   it("hardens the cookie and keeps it on every path", () => {

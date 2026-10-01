@@ -15,6 +15,21 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    storageState: {
+      cookies: [
+        {
+          name: "session",
+          value: "e2e-session",
+          domain: "localhost",
+          path: "/",
+          httpOnly: true,
+          secure: false,
+          sameSite: "Lax",
+          expires: -1,
+        },
+      ],
+      origins: [],
+    },
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
