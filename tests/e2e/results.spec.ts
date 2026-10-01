@@ -248,9 +248,13 @@ test.describe("results list layout on desktop (pt-BR)", () => {
   test.skip(({ isMobile }) => isMobile, "the page keeps its natural scroll on phones");
 
   function pageOverflow(page: Page) {
-    return page.evaluate(
-      () => document.documentElement.scrollHeight - document.documentElement.clientHeight,
-    );
+    return page.evaluate(() => {
+      const scroller = document.querySelector('[data-slot="page-scroller"]');
+      const documentOverflow =
+        document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrollerOverflow = scroller ? scroller.scrollHeight - scroller.clientHeight : 0;
+      return Math.max(documentOverflow, scrollerOverflow);
+    });
   }
 
   test("keeps the page still and scrolls only the table", async ({ page }) => {
@@ -324,6 +328,8 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     );
     await chooseRemittance(page);
     await expect(resultsSection(page).getByRole("alert")).toBeVisible();
+    await expect(page.getByRole("main")).toHaveCSS("overflow-y", "visible");
+    await expect(page.locator('[data-slot="page-scroller"]')).toHaveCSS("overflow-y", "auto");
 
     const region = resultsSection(page).getByRole("region", { name: "Lista de títulos" });
     const regionBox = await region.boundingBox();

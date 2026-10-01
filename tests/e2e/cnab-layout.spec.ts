@@ -95,6 +95,69 @@ test.describe("cnab 444 layout page (pt-BR)", () => {
     expect(await navigationLeft()).toBe(homeLeft);
   });
 
+  test("scrolls the content at the window edge on a desktop", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the desktop shell scrolls only inside the page content");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/cnab-444");
+
+    const scroller = await page.locator('[data-slot="page-scroller"]').evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        overflowY: getComputedStyle(element).overflowY,
+        overflows: element.scrollHeight > element.clientHeight,
+        left: box.left,
+        right: box.right,
+        windowWidth: window.innerWidth,
+      };
+    });
+    expect(scroller.overflowY).toBe("auto");
+    expect(scroller.overflows).toBe(true);
+    expect(scroller.left).toBe(0);
+    expect(scroller.right).toBe(scroller.windowWidth);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight - document.documentElement.clientHeight,
+      ),
+    ).toBe(0);
+    await expect(page.getByRole("main")).toHaveCSS("overflow-y", "visible");
+  });
+
+  test("shows the bottom padding when scrolled to the end on a desktop", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the desktop shell scrolls only inside the page content");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/cnab-444");
+
+    const edges = await page.locator('[data-slot="page-scroller"]').evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      const main = element.querySelector("main");
+      const lastSection = main?.querySelector(":scope > section:last-of-type");
+      return {
+        scrollerBottom: element.getBoundingClientRect().bottom,
+        mainBottom: main?.getBoundingClientRect().bottom ?? Number.NaN,
+        lastSectionBottom: lastSection?.getBoundingClientRect().bottom ?? Number.NaN,
+      };
+    });
+    expect(edges.mainBottom).toBeLessThanOrEqual(edges.scrollerBottom + 0.5);
+    expect(edges.mainBottom - edges.lastSectionBottom).toBeGreaterThanOrEqual(8);
+  });
+
+  test("uses a thin scrollbar on the document and the page scroller", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the page scroller exists only on desktop");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/cnab-444");
+
+    expect(
+      await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarWidth),
+    ).toBe("thin");
+    await expect(page.locator('[data-slot="page-scroller"]')).toHaveCSS("scrollbar-width", "thin");
+  });
+
   test("does not overflow horizontally at 360px", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 780 });
     await page.goto("/cnab-444");
