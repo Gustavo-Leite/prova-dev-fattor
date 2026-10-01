@@ -3,13 +3,12 @@ import { NextResponse } from "next/server";
 
 import { getServerEnv } from "@/infra/env";
 import { buildContentSecurityPolicy } from "@/lib/content-security-policy";
+import { homePath, signInPath } from "@/lib/routes";
 import { openSessionCookie, sessionCookieName } from "@/lib/session-cookie";
 
 const contentSecurityPolicyHeader = "Content-Security-Policy";
 
-const protectedPaths: readonly string[] = ["/"];
-
-const signInPath = "/entrar";
+const protectedPaths: readonly string[] = [homePath];
 
 async function hasSession(request: NextRequest): Promise<boolean> {
   const token = await openSessionCookie(

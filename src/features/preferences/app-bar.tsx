@@ -7,6 +7,7 @@ import { AppNav } from "@/components/app-nav";
 import { Button } from "@/components/ui/button";
 import { PreferenceControls } from "@/features/preferences/preference-controls";
 import type { Locale } from "@/lib/locale";
+import { homePath } from "@/lib/routes";
 import type { Theme } from "@/lib/theme";
 
 export interface AppBarProps {
@@ -23,7 +24,7 @@ export async function AppBar({ locale, theme, logo, signOutAction }: AppBarProps
     <header className="shrink-0 border-b bg-card">
       <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2 sm:flex sm:px-6 lg:px-8">
         <Link
-          href="/"
+          href={homePath}
           className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 rounded-md text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         >
           <Image
@@ -40,7 +41,7 @@ export async function AppBar({ locale, theme, logo, signOutAction }: AppBarProps
           <AppNav
             label={t("nav.label")}
             links={[
-              { href: "/", label: t("nav.check") },
+              { href: homePath, label: t("nav.check") },
               { href: "/cnab-444", label: t("nav.layout") },
             ]}
           />

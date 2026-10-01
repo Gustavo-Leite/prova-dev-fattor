@@ -53,6 +53,7 @@ import {
   selectFilteredRows,
   selectVisibleRows,
 } from "@/features/remittance/select-visible-rows";
+import { signInPath } from "@/lib/routes";
 
 export interface RemittanceResultsProps {
   readonly rows: readonly ReceivableRow[];
@@ -450,7 +451,7 @@ function SignInAgainLink({ ref }: SignInAgainLinkProps) {
     <AlertDescription>
       <Link
         ref={ref}
-        href="/entrar"
+        href={signInPath}
         className="rounded-sm font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
       >
         {t("signInAgain")}

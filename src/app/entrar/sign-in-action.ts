@@ -8,6 +8,7 @@ import type { SignInFormState } from "@/features/session/sign-in-fields";
 import { getServerEnv } from "@/infra/env";
 import { createFattorAuthenticator } from "@/infra/fattor/fattor-authenticator";
 import { createCredentialGatedAuthenticator } from "@/infra/session/credential-gated-authenticator";
+import { homePath } from "@/lib/routes";
 import {
   currentUnixSeconds,
   sealSessionToken,
@@ -37,5 +38,5 @@ export async function signIn(
     await sealSessionToken(outcome.token, env.sessionSecret, expiresAtSeconds),
     options,
   );
-  redirect("/");
+  redirect(homePath);
 }
