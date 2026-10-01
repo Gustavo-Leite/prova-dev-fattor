@@ -4,11 +4,15 @@ import { defineConfig, devices } from "@playwright/test";
 
 const e2eSessionSecret = "e2e-session-secret-e2e-session-secret";
 export const e2eSessionToken = "e2e-session";
-const e2eSessionExpiry = "4102444800";
-const e2eSessionSignature = createHmac("sha256", e2eSessionSecret)
-  .update(`${e2eSessionExpiry}.${e2eSessionToken}`)
-  .digest("base64url");
-const e2eSealedSession = `${e2eSessionToken}.${e2eSessionExpiry}.${e2eSessionSignature}`;
+
+export function sealE2eSession(expiry: string): string {
+  const signature = createHmac("sha256", e2eSessionSecret)
+    .update(`${expiry}.${e2eSessionToken}`)
+    .digest("base64url");
+  return `${e2eSessionToken}.${expiry}.${signature}`;
+}
+
+const e2eSealedSession = sealE2eSession("4102444800");
 
 const port = 3100;
 const baseURL = `http://localhost:${port}`;

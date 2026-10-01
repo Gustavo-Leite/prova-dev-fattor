@@ -269,6 +269,7 @@
       "check": "Consultar",
       "layout": "Layout CNAB 444"
     },
+    "signOut": "Sair",
     "theme": {
       "label": "Tema",
       "system": "Seguir o tema do sistema",

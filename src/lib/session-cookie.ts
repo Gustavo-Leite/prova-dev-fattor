@@ -1,5 +1,7 @@
 export const sessionCookieName = "session";
 
+export const sessionCookiePath = "/";
+
 const maxExpiryMarginSeconds = 60;
 
 export const maxSessionSeconds = 24 * 60 * 60;
@@ -102,7 +104,7 @@ export interface SessionCookieOptions {
   readonly httpOnly: true;
   readonly secure: boolean;
   readonly sameSite: "lax";
-  readonly path: "/";
+  readonly path: typeof sessionCookiePath;
   readonly maxAge: number;
 }
 
@@ -116,7 +118,7 @@ export function sessionCookieOptions(
     httpOnly: true,
     secure,
     sameSite: "lax",
-    path: "/",
+    path: sessionCookiePath,
     maxAge: Math.min(maxSessionSeconds, Math.max(0, Math.floor(lifetime - margin))),
   };
 }

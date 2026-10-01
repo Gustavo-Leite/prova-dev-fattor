@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { AppNav } from "@/components/app-nav";
+import { Button } from "@/components/ui/button";
 import { PreferenceControls } from "@/features/preferences/preference-controls";
 import type { Locale } from "@/lib/locale";
 import type { Theme } from "@/lib/theme";
@@ -12,9 +13,10 @@ export interface AppBarProps {
   readonly locale: Locale;
   readonly theme: Theme | undefined;
   readonly logo: StaticImageData;
+  readonly signOutAction?: () => Promise<void>;
 }
 
-export async function AppBar({ locale, theme, logo }: AppBarProps) {
+export async function AppBar({ locale, theme, logo, signOutAction }: AppBarProps) {
   const t = await getTranslations("appBar");
 
   return (
@@ -34,7 +36,7 @@ export async function AppBar({ locale, theme, logo }: AppBarProps) {
           />
           <span className="truncate">{t("name")}</span>
         </Link>
-        <div className="col-span-2 row-start-2 sm:flex-1">
+        <div className="col-span-2 row-start-2 flex items-center justify-between gap-2 sm:flex-1">
           <AppNav
             label={t("nav.label")}
             links={[
@@ -42,6 +44,13 @@ export async function AppBar({ locale, theme, logo }: AppBarProps) {
               { href: "/cnab-444", label: t("nav.layout") },
             ]}
           />
+          {signOutAction === undefined ? null : (
+            <form action={signOutAction} className="shrink-0">
+              <Button type="submit" variant="ghost" className="text-xs font-semibold">
+                {t("signOut")}
+              </Button>
+            </form>
+          )}
         </div>
         <PreferenceControls locale={locale} theme={theme} className="col-start-2 row-start-1" />
       </div>
