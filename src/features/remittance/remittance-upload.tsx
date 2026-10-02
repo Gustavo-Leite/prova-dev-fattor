@@ -10,8 +10,8 @@ import {
   describeRemittanceRejection,
   toKilobytes,
 } from "@/features/remittance/describe-remittance-issue";
-import type { UploadState } from "@/features/remittance/remittance-check-provider";
 import { useRemittanceCheck } from "@/features/remittance/remittance-check-provider";
+import { useChangedSinceMount } from "@/features/remittance/use-changed-since-mount";
 import type { RemittanceUploadLimits } from "@/features/remittance/validate-remittance-file";
 import { cn } from "@/lib/utils";
 
@@ -34,13 +34,10 @@ export function RemittanceUpload({ limits }: RemittanceUploadProps) {
   const [rejectionShownOnMount] = useState(() =>
     state.phase === "rejected" ? state.attempt : null,
   );
-  const [uploadPhaseShownOnMount, setUploadPhaseShownOnMount] = useState<
-    UploadState["phase"] | null
-  >(state.phase === "idle" ? null : state.phase);
-  if (uploadPhaseShownOnMount !== null && state.phase !== uploadPhaseShownOnMount) {
-    setUploadPhaseShownOnMount(null);
-  }
-  const isStatusQuiet = uploadPhaseShownOnMount !== null;
+  const hasUploadPhaseChanged = useChangedSinceMount(state.phase, {
+    changedOnMount: state.phase === "idle",
+  });
+  const isStatusQuiet = !hasUploadPhaseChanged;
   const [isDragging, setIsDragging] = useState(false);
 
   const translate = (message: RemittanceMessage) => t(message.key, message.values);

@@ -1,11 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useRemittanceCheck } from "@/features/remittance/remittance-check-provider";
-import type { RemittanceCheckState } from "@/features/remittance/remittance-check-state";
 import {
   deriveRows,
   requiresSignIn,
@@ -13,6 +12,7 @@ import {
 } from "@/features/remittance/remittance-check-state";
 import { RemittanceResults } from "@/features/remittance/remittance-results";
 import { RemittanceUpload } from "@/features/remittance/remittance-upload";
+import { useChangedSinceMount } from "@/features/remittance/use-changed-since-mount";
 import type { RemittanceUploadLimits } from "@/features/remittance/validate-remittance-file";
 
 export interface RemittanceCheckerProps {
@@ -30,12 +30,7 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
   const actionButton = useRef<HTMLButtonElement>(null);
   const signInLink = useRef<HTMLAnchorElement>(null);
   const actionButtonHadFocus = useRef(false);
-  const [phaseShownOnMount, setPhaseShownOnMount] = useState<RemittanceCheckState["phase"] | null>(
-    state.phase,
-  );
-  if (phaseShownOnMount !== null && state.phase !== phaseShownOnMount) {
-    setPhaseShownOnMount(null);
-  }
+  const hasPhaseChanged = useChangedSinceMount(state.phase);
 
   useEffect(() => {
     actionButtonHadFocus.current = false;
@@ -79,17 +74,16 @@ export function RemittanceChecker({ limits }: RemittanceCheckerProps) {
   const rows = selection ? deriveRows(selection.receivables, state) : [];
   const summary = summarizeRows(rows);
   const hasRows = state.phase !== "idle" && state.phase !== "requestFailed";
-  const announcement =
-    phaseShownOnMount === null
-      ? {
-          idle: "",
-          requestFailed: "",
-          checking: t("check.started", { total: rows.length }),
-          completed: t("check.completed", { total: rows.length, failed: summary.failed }),
-          failed: "",
-          interrupted: "",
-        }[state.phase]
-      : "";
+  const announcement = hasPhaseChanged
+    ? {
+        idle: "",
+        requestFailed: "",
+        checking: t("check.started", { total: rows.length }),
+        completed: t("check.completed", { total: rows.length, failed: summary.failed }),
+        failed: "",
+        interrupted: "",
+      }[state.phase]
+    : "";
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-4">

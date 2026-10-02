@@ -2,7 +2,7 @@ import { useTranslations } from "next-intl";
 
 import type { FieldPosition } from "@/domain/cnab/layout";
 import { cnab444Layout, recordTypeCodes } from "@/domain/cnab/layout";
-import { usePositionLabel } from "@/features/cnab/line-xray";
+import { usePositionLabel } from "@/features/cnab/use-position-label";
 
 const sampleRecordCountDigits: FieldPosition = {
   start: cnab444Layout.trailer.recordCount.start,
