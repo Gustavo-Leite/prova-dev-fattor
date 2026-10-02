@@ -7,6 +7,12 @@ import type {
 import { InvoiceStatusLookupError } from "@/application/remittance/invoice-status-gateway";
 import type { InvoiceStatus } from "@/domain/invoice/invoice-status";
 import { parseStatusResponse } from "@/infra/fattor/fattor-api.contract";
+import {
+  abortable,
+  discardBody,
+  isSuccessStatus,
+  parseJson,
+} from "@/infra/fattor/upstream-response";
 
 export interface FattorStatusGatewayConfig {
   readonly baseUrl: string;
@@ -40,26 +46,6 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
-function isSuccessStatus(status: number): boolean {
-  return status >= 200 && status < 300;
-}
-
-function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => {
-      reject(signal.reason as Error);
-    };
-    if (signal.aborted) {
-      onAbort();
-      return;
-    }
-    signal.addEventListener("abort", onAbort, { once: true });
-    void promise.then(resolve, reject).finally(() => {
-      signal.removeEventListener("abort", onAbort);
-    });
-  });
-}
-
 function sleep(delayMs: number, signal: AbortSignal): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const elapsed = new Promise<void>((resolve) => {
@@ -81,18 +67,6 @@ function retryAfterMs(response: Response, now: number): number | null {
   }
   const date = Date.parse(header);
   return Number.isNaN(date) ? null : date - now;
-}
-
-function discardBody(response: Response): void {
-  void response.body?.cancel().catch(() => undefined);
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return undefined;
-  }
 }
 
 export function createFattorStatusGateway(
