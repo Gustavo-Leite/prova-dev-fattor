@@ -13,13 +13,34 @@ import {
   unknownStatusResponseBody,
 } from "@/infra/fattor/fattor-api.fixture.contract";
 import type { FattorGatewayOptions } from "@/infra/fattor/fattor-status-gateway";
-import { createFattorStatusGateway } from "@/infra/fattor/fattor-status-gateway";
+import {
+  createFattorStatusGateway,
+  maxStatusResponseBytes,
+} from "@/infra/fattor/fattor-status-gateway";
 
 const baseUrl = "https://fattor.test/public/prova-dev";
 const statusUrl = `${baseUrl}/status/:key`;
 const sessionToken = "user-session-token";
 const key = "35240300000000000199550010000000011234567890";
 const fastRetries: FattorGatewayOptions = { retryBaseDelayMs: 1, random: () => 0 };
+const encoder = new TextEncoder();
+
+function paddedStatus(totalBytes: number): Uint8Array {
+  const body = JSON.stringify(statusResponseBody("autorizada", key));
+  return encoder.encode(body + " ".repeat(totalBytes - body.length));
+}
+
+function streamOfBytes(bytes: Uint8Array): ReadableStream<Uint8Array> {
+  const chunkSize = 4096;
+  return new ReadableStream({
+    start(controller) {
+      for (let offset = 0; offset < bytes.byteLength; offset += chunkSize) {
+        controller.enqueue(bytes.slice(offset, offset + chunkSize));
+      }
+      controller.close();
+    },
+  });
+}
 
 const server = setupServer();
 
@@ -161,6 +182,53 @@ describe("createFattorStatusGateway failures", () => {
     server.use(status.handler);
 
     await expect(lookUp()).rejects.toMatchObject({ reason: "UPSTREAM_UNAVAILABLE" });
+    expect(status.attempts()).toBe(1);
+  });
+
+  it("refuses a status body declared larger than the limit without reading it", async () => {
+    const status = statusAnswering(
+      () =>
+        new HttpResponse(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(paddedStatus(maxStatusResponseBytes));
+            },
+          }),
+          {
+            headers: {
+              "content-type": "application/json",
+              "content-length": String(maxStatusResponseBytes + 1),
+            },
+          },
+        ),
+    );
+    server.use(status.handler);
+    const startedAt = performance.now();
+
+    await expect(lookUp({ ...fastRetries, timeoutMs: 5_000 })).rejects.toMatchObject({
+      reason: "UPSTREAM_INVALID_RESPONSE",
+    });
+    expect(performance.now() - startedAt).toBeLessThan(400);
+    expect(status.attempts()).toBe(1);
+  });
+
+  it("reads an undeclared status body at the limit", async () => {
+    const status = statusAnswering(
+      () => new HttpResponse(streamOfBytes(paddedStatus(maxStatusResponseBytes))),
+    );
+    server.use(status.handler);
+
+    await expect(lookUp()).resolves.toBe("authorized");
+    expect(status.attempts()).toBe(1);
+  });
+
+  it("stops reading an undeclared status body past the limit, without trying again", async () => {
+    const status = statusAnswering(
+      () => new HttpResponse(streamOfBytes(paddedStatus(maxStatusResponseBytes + 1))),
+    );
+    server.use(status.handler);
+
+    await expect(lookUp()).rejects.toMatchObject({ reason: "UPSTREAM_INVALID_RESPONSE" });
     expect(status.attempts()).toBe(1);
   });
 

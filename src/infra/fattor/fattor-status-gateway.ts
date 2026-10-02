@@ -12,6 +12,7 @@ import {
   discardBody,
   isSuccessStatus,
   parseJson,
+  readCappedText,
 } from "@/infra/fattor/upstream-response";
 
 export interface FattorStatusGatewayConfig {
@@ -32,6 +33,8 @@ interface UpstreamReply {
   readonly status: number;
   readonly body: unknown;
 }
+
+export const maxStatusResponseBytes = 16 * 1024;
 
 const defaultOptions = {
   timeoutMs: 5_000,
@@ -102,8 +105,11 @@ export function createFattorStatusGateway(
             discardBody(response);
             return { status: response.status, body: undefined };
           }
-          const text = await abortable(response.text(), attemptSignal);
-          return { status: response.status, body: parseJson(text) };
+          const text = await readCappedText(response, attemptSignal, maxStatusResponseBytes);
+          return {
+            status: response.status,
+            body: text === null ? undefined : parseJson(text),
+          };
         }
         failure = "UPSTREAM_UNAVAILABLE";
         lastCause = new Error(`Upstream answered ${String(response.status)}`);

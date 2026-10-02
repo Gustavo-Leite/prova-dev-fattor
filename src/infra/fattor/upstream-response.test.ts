@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   abortable,
@@ -84,6 +84,20 @@ describe("abortable", () => {
     controller.abort(reason);
     await expect(pending).rejects.toBe(reason);
   });
+
+  it("removes its abort listener once the promise settles", async () => {
+    const controller = new AbortController();
+    const added = vi.spyOn(controller.signal, "addEventListener");
+    const removed = vi.spyOn(controller.signal, "removeEventListener");
+
+    await expect(abortable(Promise.resolve("value"), controller.signal)).resolves.toBe("value");
+
+    const listener = added.mock.calls[0]?.[1];
+    expect(listener).toBeDefined();
+    await vi.waitFor(() => {
+      expect(removed).toHaveBeenCalledWith("abort", listener);
+    });
+  });
 });
 
 describe("discardBody", () => {
@@ -128,6 +142,34 @@ describe("readCappedText", () => {
     await expect(readCappedText(response, neverEndingSignal(), maxBytes)).resolves.toBeNull();
     expect(tracked.wasCancelled()).toBe(true);
   });
+
+  it("accepts a declared content-length equal to the cap", async () => {
+    const response = new Response("12345678", { headers: { "content-length": "8" } });
+    await expect(readCappedText(response, neverEndingSignal(), maxBytes)).resolves.toBe("12345678");
+  });
+
+  it.each([
+    ["is missing", undefined],
+    ["is not a number", "unknown"],
+  ] as const)(
+    "falls back to the streamed cap when content-length %s",
+    async (_description, contentLength) => {
+      const headers = new Headers();
+      if (contentLength !== undefined) {
+        headers.set("content-length", contentLength);
+      }
+      const fitting = trackedStream([encoder.encode("1234")]);
+      const oversized = trackedStream([encoder.encode("12345"), encoder.encode("6789")], false);
+
+      await expect(
+        readCappedText(new Response(fitting.stream, { headers }), neverEndingSignal(), maxBytes),
+      ).resolves.toBe("1234");
+      await expect(
+        readCappedText(new Response(oversized.stream, { headers }), neverEndingSignal(), maxBytes),
+      ).resolves.toBeNull();
+      expect(oversized.wasCancelled()).toBe(true);
+    },
+  );
 
   it("stops reading a streamed body once it passes the cap", async () => {
     const tracked = trackedStream([encoder.encode("12345"), encoder.encode("6789")], false);
