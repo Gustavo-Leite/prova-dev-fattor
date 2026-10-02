@@ -4,6 +4,8 @@ export const sessionCookiePath = "/";
 
 const maxExpiryMarginSeconds = 60;
 
+export const minSessionSeconds = 60;
+
 export const maxSessionSeconds = 24 * 60 * 60;
 
 export const maxSessionTokenLength = 4000;
@@ -108,17 +110,21 @@ export interface SessionCookieOptions {
   readonly maxAge: number;
 }
 
+export function effectiveSessionSeconds(expiresInSeconds: number): number {
+  const lifetime = Number.isFinite(expiresInSeconds) ? expiresInSeconds : 0;
+  const margin = Math.min(maxExpiryMarginSeconds, lifetime / 2);
+  return Math.min(maxSessionSeconds, Math.max(0, Math.floor(lifetime - margin)));
+}
+
 export function sessionCookieOptions(
   expiresInSeconds: number,
   { secure }: { readonly secure: boolean },
 ): SessionCookieOptions {
-  const lifetime = Number.isFinite(expiresInSeconds) ? expiresInSeconds : 0;
-  const margin = Math.min(maxExpiryMarginSeconds, lifetime / 2);
   return {
     httpOnly: true,
     secure,
     sameSite: "lax",
     path: sessionCookiePath,
-    maxAge: Math.min(maxSessionSeconds, Math.max(0, Math.floor(lifetime - margin))),
+    maxAge: effectiveSessionSeconds(expiresInSeconds),
   };
 }

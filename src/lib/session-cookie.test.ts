@@ -4,8 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   currentUnixSeconds,
+  effectiveSessionSeconds,
   maxSessionSeconds,
   maxSessionTokenLength,
+  minSessionSeconds,
   openSessionCookie,
   sealSessionToken,
   sessionCookieName,
@@ -199,6 +201,33 @@ describe("openSessionCookie", () => {
     ["two dots", ".."],
   ])("refuses %s", async (_description, value) => {
     expect(await openAtNow(value)).toBeNull();
+  });
+});
+
+describe("effectiveSessionSeconds", () => {
+  it("requires a session to last at least a minute", () => {
+    expect(minSessionSeconds).toBe(60);
+  });
+
+  it.each([
+    [0, 0],
+    [1, 0],
+    [60, 30],
+    [119, 59],
+    [120, 60],
+    [121, 61],
+    [3600, 3540],
+    [86_460, 86_400],
+    [86_461, 86_400],
+    [-10, 0],
+    [Number.NaN, 0],
+    [Number.POSITIVE_INFINITY, 0],
+  ])("keeps a token issued for %d seconds for %d seconds", (expiresIn, seconds) => {
+    expect(effectiveSessionSeconds(expiresIn)).toBe(seconds);
+  });
+
+  it("sets the cookie lifetime from the effective session", () => {
+    expect(sessionCookieOptions(119, { secure: true }).maxAge).toBe(effectiveSessionSeconds(119));
   });
 });
 
