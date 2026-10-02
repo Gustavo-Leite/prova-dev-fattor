@@ -124,6 +124,9 @@ export function createFattorStatusGateway(
       } finally {
         clearTimeout(timer);
       }
+      if (requestedDelayMs !== null && requestedDelayMs > options.maxRetryDelayMs) {
+        break;
+      }
       if (attempt < options.retries) {
         await sleep(backoffMs(attempt, requestedDelayMs), signal);
       }
