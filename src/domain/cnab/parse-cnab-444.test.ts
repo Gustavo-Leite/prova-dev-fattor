@@ -78,6 +78,150 @@ describe("parseCnab444 with the sample file", () => {
   });
 });
 
+describe("parseCnab444 with the sample file re-encoded", () => {
+  const sampleLines = decodeRemittance(readFileSync(sampleFilePath)).split("\n").slice(0, 12);
+  const payerNameStart = 153;
+  const byteOrderMark = [0xef, 0xbb, 0xbf];
+
+  function typeOver(line: string, start: number, text: string, columns: number): string {
+    return line.slice(0, start - 1) + text + line.slice(start - 1 + columns);
+  }
+
+  function withPayerName(name: string, columns = name.length): string {
+    return sampleLines
+      .map((line, index) => (index === 1 ? typeOver(line, payerNameStart, name, columns) : line))
+      .join("\r\n");
+  }
+
+  function utf8Bytes(content: string): Uint8Array {
+    return new TextEncoder().encode(content);
+  }
+
+  function latin1Bytes(content: string): Uint8Array {
+    return Uint8Array.from(content, (character) => character.charCodeAt(0));
+  }
+
+  function readReceivables(bytes: Uint8Array): number {
+    const result = parseCnab444(decodeRemittance(bytes));
+    assert(result.ok);
+    return result.receivables.length;
+  }
+
+  it("accepts a UTF-8 file with a byte order mark and an accented payer name", () => {
+    const content = withPayerName("JOSÉ");
+    const result = parseCnab444(
+      decodeRemittance(Uint8Array.from([...byteOrderMark, ...utf8Bytes(content)])),
+    );
+    assert(result.ok);
+    expect(result.receivables).toHaveLength(10);
+    expect(result.lines[1]).toHaveLength(lineLength);
+    expect(result.lines[1]?.slice(payerNameStart - 1, payerNameStart + 3)).toBe("JOSÉ");
+  });
+
+  it("accepts a Latin-1 file without a byte order mark and an accented payer name", () => {
+    expect(readReceivables(latin1Bytes(withPayerName("JOSÉ")))).toBe(10);
+  });
+
+  it("reads invalid UTF-8 after a byte order mark as windows-1252", () => {
+    const bytes = Uint8Array.from([...byteOrderMark, ...latin1Bytes(withPayerName("JOSÉ"))]);
+    const result = parseCnab444(decodeRemittance(bytes));
+    assert(result.ok);
+    expect(result.receivables).toHaveLength(10);
+    expect(result.lines[1]?.slice(payerNameStart - 1, payerNameStart + 3)).toBe("JOSÉ");
+  });
+
+  it("rejects a line with a character outside the BMP instead of shifting the key", () => {
+    const content = withPayerName("\u{1F600}", 1);
+    expect(
+      parseCnab444(decodeRemittance(Uint8Array.from([...byteOrderMark, ...utf8Bytes(content)]))),
+    ).toEqual({
+      ok: false,
+      errors: [{ code: "INVALID_LINE_LENGTH", lineNumber: 2, expected: lineLength, actual: 445 }],
+      truncated: false,
+    });
+  });
+
+  it.each([
+    ["a lone final carriage return", `${sampleLines.join("\r\n")}\r`],
+    ["a carriage return and an end-of-file character", `${sampleLines.join("\r\n")}\r\u001a`],
+    ["a final line break and an end-of-file character", `${sampleLines.join("\r\n")}\r\n\u001a`],
+    ["null padding", `${sampleLines.join("\n")}\n\u0000\u0000\u0000`],
+    ["null padding right after the trailer", `${sampleLines.join("\n")}\u0000\u0000`],
+    [
+      "final lines with only spaces and end-of-file characters",
+      `${sampleLines.join("\n")}\n   \r\n \u001a\u001a \n\u001a`,
+    ],
+  ])("accepts the sample file ending with %s", (_description, content) => {
+    const result = parseCnab444(content);
+    assert(result.ok);
+    expect(result.receivables).toHaveLength(10);
+    expect(result.lines).toEqual(sampleLines);
+  });
+
+  it("reports an end-of-file character in the middle of the file", () => {
+    const lines = [...sampleLines.slice(0, 11), "\u001a", ...sampleLines.slice(11)];
+    expect(parseCnab444(lines.join("\n"))).toEqual({
+      ok: false,
+      errors: [
+        { code: "INVALID_CHARACTERS", lineNumber: 12 },
+        { code: "INVALID_LINE_LENGTH", lineNumber: 12, expected: lineLength, actual: 1 },
+        { code: "UNEXPECTED_RECORD_TYPE", lineNumber: 12, expected: "1", actual: "\u001a" },
+        { code: "RECORD_COUNT_MISMATCH", lineNumber: 13, declared: 12, actual: 13 },
+      ],
+      truncated: false,
+    });
+  });
+
+  it("reports a second byte order mark as an invalid character", () => {
+    const bytes = Uint8Array.from([
+      ...byteOrderMark,
+      ...byteOrderMark,
+      ...utf8Bytes(sampleLines.join("\n")),
+    ]);
+    expect(parseCnab444(decodeRemittance(bytes))).toEqual({
+      ok: false,
+      errors: [
+        { code: "INVALID_CHARACTERS", lineNumber: 1 },
+        {
+          code: "INVALID_LINE_LENGTH",
+          lineNumber: 1,
+          expected: lineLength,
+          actual: lineLength + 1,
+        },
+        {
+          code: "UNEXPECTED_RECORD_TYPE",
+          lineNumber: 1,
+          expected: "0",
+          actual: String.fromCharCode(0xfeff),
+        },
+      ],
+      truncated: false,
+    });
+  });
+
+  it("removes the end-of-file filler in linear time", () => {
+    const content = `${"\r\u0000".repeat(64 * 1024)}X`;
+    const startedAt = performance.now();
+    const result = parseCnab444(content);
+    expect(performance.now() - startedAt).toBeLessThan(500);
+    expect(result).toEqual({
+      ok: false,
+      errors: [
+        { code: "INVALID_CHARACTERS", lineNumber: 1 },
+        {
+          code: "INVALID_LINE_LENGTH",
+          lineNumber: 1,
+          expected: lineLength,
+          actual: content.length,
+        },
+        { code: "UNEXPECTED_RECORD_TYPE", lineNumber: 1, expected: "0", actual: "\r" },
+        { code: "MISSING_DETAIL_RECORDS" },
+      ],
+      truncated: false,
+    });
+  });
+});
+
 describe("parseCnab444 input normalization", () => {
   const validLines = remittance([detail()]);
 
@@ -150,22 +294,28 @@ describe("parseCnab444 structure errors", () => {
     });
   });
 
-  it("reports lines separated only by carriage returns as one invalid line", () => {
-    expect(parseCnab444(remittance([detail()]).join("\r"))).toEqual({
-      ok: false,
-      errors: [
-        { code: "INVALID_CHARACTERS", lineNumber: 1 },
-        {
-          code: "INVALID_LINE_LENGTH",
-          lineNumber: 1,
-          expected: lineLength,
-          actual: lineLength * 3 + 2,
-        },
-        { code: "MISSING_DETAIL_RECORDS" },
-      ],
-      truncated: false,
-    });
-  });
+  it.each([
+    ["without", ""],
+    ["with", "\r"],
+  ])(
+    "reports lines separated only by carriage returns, %s a final one, as one invalid line",
+    (_description, ending) => {
+      expect(parseCnab444(remittance([detail()]).join("\r") + ending)).toEqual({
+        ok: false,
+        errors: [
+          { code: "INVALID_CHARACTERS", lineNumber: 1 },
+          {
+            code: "INVALID_LINE_LENGTH",
+            lineNumber: 1,
+            expected: lineLength,
+            actual: lineLength * 3 + 2,
+          },
+          { code: "MISSING_DETAIL_RECORDS" },
+        ],
+        truncated: false,
+      });
+    },
+  );
 
   it.each([
     ["a null character", "\u0000"],

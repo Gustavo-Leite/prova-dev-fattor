@@ -1,9 +1,9 @@
 # 0010. Parser do CNAB 444
 
-- Status: Aceito
+- Status: Substituído parcialmente por 0018
 - Data: 2026-09-30
 - Substitui: —
-- Substituído por: —
+- Substituído por: 0018 (parcialmente: decodificação e fim do arquivo)
 
 ## Contexto
 
