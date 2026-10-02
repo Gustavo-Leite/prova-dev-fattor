@@ -3,6 +3,7 @@ import { getLocale } from "next-intl/server";
 
 import { signOut } from "@/app/(app)/sign-out-action";
 import { AppBar } from "@/features/preferences/app-bar";
+import { RemittanceCheckProvider } from "@/features/remittance/remittance-check-provider";
 import { getServerEnv } from "@/infra/env";
 import { openSessionCookie, sessionCookieName } from "@/lib/session-cookie";
 import { isTheme, themeCookieName } from "@/lib/theme";
@@ -31,7 +32,7 @@ export default async function AppShellLayout({ children }: LayoutProps<"/">) {
         data-slot="page-scroller"
         className="flex w-full flex-1 flex-col desktop-tall:scrollbar-gutter-stable desktop-tall:overflow-y-auto"
       >
-        {children}
+        <RemittanceCheckProvider>{children}</RemittanceCheckProvider>
       </div>
     </>
   );

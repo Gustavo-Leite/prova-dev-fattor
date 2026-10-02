@@ -5,97 +5,47 @@ import type { ChangeEvent, DragEvent } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { Receivable } from "@/domain/cnab/parse-cnab-444";
 import type { RemittanceMessage } from "@/features/remittance/describe-remittance-issue";
 import {
   describeRemittanceRejection,
   toKilobytes,
 } from "@/features/remittance/describe-remittance-issue";
-import type {
-  RemittanceFileRejection,
-  RemittanceUploadLimits,
-} from "@/features/remittance/validate-remittance-file";
-import { validateRemittanceFile } from "@/features/remittance/validate-remittance-file";
+import type { UploadState } from "@/features/remittance/remittance-check-provider";
+import { useRemittanceCheck } from "@/features/remittance/remittance-check-provider";
+import type { RemittanceUploadLimits } from "@/features/remittance/validate-remittance-file";
 import { cn } from "@/lib/utils";
-
-type UploadState =
-  | { readonly phase: "idle" }
-  | { readonly phase: "reading"; readonly fileName: string }
-  | {
-      readonly phase: "ready";
-      readonly fileName: string;
-      readonly receivables: readonly Receivable[];
-    }
-  | {
-      readonly phase: "rejected";
-      readonly attempt: number;
-      readonly fileName: string | null;
-      readonly rejection: RemittanceFileRejection;
-    };
 
 export interface RemittanceUploadProps {
   readonly limits: RemittanceUploadLimits;
-  readonly onReady?: (
-    file: File,
-    receivables: readonly Receivable[],
-    lines: readonly string[],
-  ) => void;
-  readonly onReset?: () => void;
 }
 
 function preventBrowserFileOpen(event: globalThis.DragEvent) {
   event.preventDefault();
 }
 
-export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadProps) {
+export function RemittanceUpload({ limits }: RemittanceUploadProps) {
   const t = useTranslations("remittance");
   const headingId = useId();
   const inputId = useId();
   const hintId = useId();
   const alertId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const latestSelection = useRef(0);
-  const [state, setState] = useState<UploadState>({ phase: "idle" });
+  const { uploadState: state, selection, attach } = useRemittanceCheck();
+  const [rejectionShownOnMount] = useState(() =>
+    state.phase === "rejected" ? state.attempt : null,
+  );
+  const [uploadPhaseShownOnMount, setUploadPhaseShownOnMount] = useState<
+    UploadState["phase"] | null
+  >(state.phase === "idle" ? null : state.phase);
+  if (uploadPhaseShownOnMount !== null && state.phase !== uploadPhaseShownOnMount) {
+    setUploadPhaseShownOnMount(null);
+  }
+  const isStatusQuiet = uploadPhaseShownOnMount !== null;
   const [isDragging, setIsDragging] = useState(false);
 
   const translate = (message: RemittanceMessage) => t(message.key, message.values);
 
-  const accept = useCallback(
-    async (files: readonly File[]) => {
-      const [file] = files;
-      if (!file) {
-        return;
-      }
-      const selection = ++latestSelection.current;
-      onReset?.();
-      if (files.length > 1) {
-        setState({
-          phase: "rejected",
-          attempt: selection,
-          fileName: null,
-          rejection: { code: "MULTIPLE_FILES" },
-        });
-        return;
-      }
-      setState({ phase: "reading", fileName: file.name });
-      const validation = await validateRemittanceFile(file, limits);
-      if (selection !== latestSelection.current) {
-        return;
-      }
-      if (!validation.ok) {
-        setState({
-          phase: "rejected",
-          attempt: selection,
-          fileName: file.name,
-          rejection: validation.rejection,
-        });
-        return;
-      }
-      setState({ phase: "ready", fileName: file.name, receivables: validation.receivables });
-      onReady?.(file, validation.receivables, validation.lines);
-    },
-    [limits, onReady, onReset],
-  );
+  const accept = useCallback((files: readonly File[]) => attach(files, limits), [attach, limits]);
 
   useEffect(() => {
     const input = inputRef.current;
@@ -143,10 +93,27 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
   const isCompact = state.phase === "ready";
   const isRejected = state.phase === "rejected";
   const rejection = isRejected ? describeRemittanceRejection(state.rejection) : null;
-  const invalidCheckDigits =
-    state.phase === "ready"
-      ? state.receivables.filter((receivable) => !receivable.hasValidCheckDigit).length
-      : 0;
+  const receivables = selection?.receivables ?? [];
+  const invalidCheckDigits = receivables.filter(
+    (receivable) => !receivable.hasValidCheckDigit,
+  ).length;
+  const statusContent = (
+    <>
+      {state.phase === "reading" && t("upload.reading", { fileName: state.fileName })}
+      {state.phase === "ready" && (
+        <div className="flex flex-col gap-1">
+          <p className="font-medium">
+            {t("upload.ready", { count: receivables.length, fileName: state.fileName })}
+          </p>
+          {invalidCheckDigits > 0 && (
+            <p className="text-muted-foreground">
+              {t("upload.invalidCheckDigits", { count: invalidCheckDigits })}
+            </p>
+          )}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <section
@@ -194,24 +161,18 @@ export function RemittanceUpload({ limits, onReady, onReset }: RemittanceUploadP
         />
       </label>
 
-      <div role="status" className="min-h-6 text-sm">
-        {state.phase === "reading" && t("upload.reading", { fileName: state.fileName })}
-        {state.phase === "ready" && (
-          <div className="flex flex-col gap-1">
-            <p className="font-medium">
-              {t("upload.ready", { count: state.receivables.length, fileName: state.fileName })}
-            </p>
-            {invalidCheckDigits > 0 && (
-              <p className="text-muted-foreground">
-                {t("upload.invalidCheckDigits", { count: invalidCheckDigits })}
-              </p>
-            )}
-          </div>
-        )}
+      <div role="status" className={isStatusQuiet ? "sr-only" : "min-h-6 text-sm"}>
+        {!isStatusQuiet && statusContent}
       </div>
+      {isStatusQuiet && <div className="min-h-6 text-sm">{statusContent}</div>}
 
       {state.phase === "rejected" && rejection && (
-        <Alert key={state.attempt} id={alertId} variant="destructive">
+        <Alert
+          key={state.attempt}
+          id={alertId}
+          variant="destructive"
+          role={state.attempt === rejectionShownOnMount ? undefined : "alert"}
+        >
           <AlertTitle>{translate(rejection.summary)}</AlertTitle>
           <AlertDescription>
             {state.fileName !== null && (

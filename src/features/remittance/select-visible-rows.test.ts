@@ -6,12 +6,20 @@ import type {
   RowTone,
 } from "@/features/remittance/remittance-check-state";
 import { summarizeRows } from "@/features/remittance/remittance-check-state";
-import type { RowSelection, RowSort } from "@/features/remittance/select-visible-rows";
+import type {
+  ResultsView,
+  ResultsViewAction,
+  RowSelection,
+  RowSort,
+} from "@/features/remittance/select-visible-rows";
 import {
+  createResultsView,
+  defaultPageSize,
   defaultSort,
   filterOptions,
   nextSort,
   normalizeQuery,
+  resultsViewReducer,
   selectFilteredRows,
   selectVisibleRows,
 } from "@/features/remittance/select-visible-rows";
@@ -283,5 +291,80 @@ describe("filterOptions", () => {
       "authorized",
       "pending",
     ]);
+  });
+});
+
+describe("resultsViewReducer", () => {
+  function view(...actions: ResultsViewAction[]) {
+    return actions.reduce(resultsViewReducer, createResultsView());
+  }
+
+  const onThirdPage: ResultsViewAction = { type: "pageChanged", pageIndex: 2 };
+
+  it("starts on the first page with no filters, the default sort and page size", () => {
+    expect(createResultsView()).toEqual({
+      tones: new Set(),
+      query: "",
+      sort: defaultSort,
+      pageIndex: 0,
+      pageSize: defaultPageSize,
+    });
+  });
+
+  it("toggles a tone on and off and returns to the first page", () => {
+    const toggled = view(onThirdPage, { type: "toneToggled", tone: "denied" });
+    expect([...toggled.tones]).toEqual(["denied"]);
+    expect(toggled.pageIndex).toBe(0);
+
+    const untoggled = resultsViewReducer(toggled, { type: "toneToggled", tone: "denied" });
+    expect(untoggled.tones.size).toBe(0);
+  });
+
+  it("does not mutate the tones of the previous view", () => {
+    const before = view({ type: "toneToggled", tone: "denied" });
+    resultsViewReducer(before, { type: "toneToggled", tone: "authorized" });
+    expect([...before.tones]).toEqual(["denied"]);
+  });
+
+  it.each<[string, ResultsViewAction, Partial<ResultsView>]>([
+    ["a search", { type: "queryChanged", query: "3525" }, { query: "3525" }],
+    [
+      "a new sort",
+      { type: "sortChanged", sort: { column: "status", direction: "desc" } },
+      { sort: { column: "status", direction: "desc" } },
+    ],
+    ["a new page size", { type: "pageSizeChanged", pageSize: 10 }, { pageSize: 10 }],
+  ])("returns to the first page after %s", (_description, action, expected) => {
+    expect(view(onThirdPage, action)).toMatchObject({ ...expected, pageIndex: 0 });
+  });
+
+  it("clears the tones and the search but keeps the sort and page size", () => {
+    const cleared = view(
+      { type: "toneToggled", tone: "denied" },
+      { type: "queryChanged", query: "3525" },
+      { type: "sortChanged", sort: { column: "key", direction: "asc" } },
+      { type: "pageSizeChanged", pageSize: 50 },
+      onThirdPage,
+      { type: "filtersCleared" },
+    );
+    expect(cleared).toEqual({
+      tones: new Set(),
+      query: "",
+      sort: { column: "key", direction: "asc" },
+      pageIndex: 0,
+      pageSize: 50,
+    });
+  });
+
+  it("moves to a page and keeps the same view when the page does not change", () => {
+    const moved = view(onThirdPage);
+    expect(moved.pageIndex).toBe(2);
+    expect(resultsViewReducer(moved, onThirdPage)).toBe(moved);
+  });
+
+  it("goes back to the initial view on reset", () => {
+    expect(view({ type: "toneToggled", tone: "denied" }, onThirdPage, { type: "reset" })).toEqual(
+      createResultsView(),
+    );
   });
 });

@@ -23,6 +23,7 @@ projeto, que apontarão para os ADRs.
 | [0013](0013-theme-and-language-switchers.md) | Tema e idioma em cookie aplicado no servidor, via Server Actions | Aceito |
 | [0014](0014-cnab-444-layout-page.md) | Página do layout CNAB 444; posições observadas só para exibição | Aceito |
 | [0016](0016-nonce-content-security-policy.md) | CSP com nonce por requisição no proxy; fonte única da política | Aceito |
+| [0017](0017-keep-check-state-in-app-layout.md) | Estado da consulta no layout de `(app)`, sem storage do navegador | Aceito |
 
 Cada ADR segue o mesmo formato: Contexto, Opções consideradas, Decisão (a primeira linha resume a
 decisão), Consequências e Evidências (arquivos que aplicam a regra e o commit em que ela entrou).
