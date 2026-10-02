@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 
-import type { Page, Route } from "@playwright/test";
+import type { Route } from "@playwright/test";
 
-export const samplePath = path.join(__dirname, "../../_prova/meu_cnab.rem");
+import { samplePath } from "./support/locators";
 
 const sampleLines = readFileSync(samplePath, "latin1").split("\n");
 
@@ -99,19 +98,4 @@ export function interruptedStream(
 export function fulfillStream(body: string) {
   return (route: Route) =>
     route.fulfill({ status: 200, contentType: "application/x-ndjson; charset=utf-8", body });
-}
-
-export function resultsSection(page: Page) {
-  return page.getByRole("region", { name: "Situação das notas" });
-}
-
-export function visibleRowFor(page: Page, key: string) {
-  return resultsSection(page).locator("tr, li").filter({ hasText: key }).filter({ visible: true });
-}
-
-export function visibleRows(page: Page) {
-  return resultsSection(page)
-    .locator("tbody tr, li")
-    .filter({ hasText: /\d{44}/ })
-    .filter({ visible: true });
 }

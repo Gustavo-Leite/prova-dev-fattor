@@ -7,71 +7,41 @@ import {
   fullStream,
   interruptedStream,
   ndjson,
-  resultsSection,
-  samplePath,
   sampleReceivables,
   sampleResult,
-  visibleRows,
 } from "./remittance-stream";
+import {
+  chooseRemittance,
+  chooseSample,
+  fileInput,
+  listAnnouncement,
+  milestone,
+  pagination,
+  resultsSection,
+  statusFilter,
+  statusFilters,
+  uploadAlert,
+  uploadSection,
+  uploadStatus,
+  visibleRows,
+} from "./support/locators";
 
 const interruptedMessage = "A consulta foi interrompida antes do fim.";
 
 const remittance = buildRemittance(30);
 
-function fileInput(page: Page) {
-  return page.locator('input[type="file"]');
-}
-
-function uploadSection(page: Page) {
-  return page.locator("section", { has: fileInput(page) });
-}
-
-function uploadStatus(page: Page) {
-  return uploadSection(page).getByRole("status");
-}
-
-function uploadAlert(page: Page) {
-  return uploadSection(page).getByRole("alert");
-}
-
-function milestone(page: Page) {
-  return page.getByRole("status").filter({ hasText: /^Consult/ });
-}
-
 function filledAnnouncements(page: Page) {
   return page.getByRole("status").filter({ hasText: /^Consult|encontrad/ });
-}
-
-function listAnnouncement(page: Page) {
-  return resultsSection(page).getByRole("status");
 }
 
 function resultsAlert(page: Page) {
   return resultsSection(page).getByRole("alert");
 }
 
-function pagination(page: Page) {
-  return resultsSection(page).getByRole("navigation", { name: "Páginas dos resultados" });
-}
-
-function statusFilter(page: Page, name: RegExp) {
-  return resultsSection(page)
-    .getByRole("group", { name: "Filtrar por situação" })
-    .getByRole("button", { name });
-}
-
 function navLink(page: Page, name: string) {
   return page
     .getByRole("navigation", { name: "Principal" })
     .getByRole("link", { name, exact: true });
-}
-
-async function chooseRemittance(page: Page) {
-  await fileInput(page).setInputFiles({
-    name: "remessa-30.rem",
-    mimeType: "application/octet-stream",
-    buffer: remittance.buffer,
-  });
 }
 
 async function markDocument(page: Page) {
@@ -99,7 +69,7 @@ async function checkAndNarrow(page: Page) {
   await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
   await page.goto("/");
   await markDocument(page);
-  await chooseRemittance(page);
+  await chooseRemittance(page, remittance);
   await expect(milestone(page)).toHaveText("Consulta concluída: 30 títulos consultados.");
 
   await pagination(page).getByLabel("Títulos por página").selectOption("10");
@@ -159,11 +129,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
     await expect(pagination(page)).toContainText("1–25 de 30");
     await expect(pagination(page)).toContainText("Página 1 de 2");
     await expect(pagination(page).getByLabel("Títulos por página")).toHaveValue("25");
-    await expect(
-      resultsSection(page)
-        .getByRole("group", { name: "Filtrar por situação" })
-        .getByRole("button", { pressed: true }),
-    ).toHaveCount(0);
+    await expect(statusFilters(page).getByRole("button", { pressed: true })).toHaveCount(0);
   });
 
   test("finishes a check that was still running while the user was away", async ({ page }) => {
@@ -181,7 +147,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
     try {
       await page.goto("/");
       await markDocument(page);
-      await fileInput(page).setInputFiles(samplePath);
+      await chooseSample(page);
       await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
 
       await goToLayoutPage(page);
@@ -207,7 +173,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
     await page.route("**/api/remittances", fulfillStream(interruptedStream(sampleReceivables, 3)));
     await page.goto("/");
     await markDocument(page);
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(resultsAlert(page)).toContainText(interruptedMessage);
 
     await goToLayoutPage(page);
@@ -233,7 +199,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
     try {
       await page.goto("/");
       await markDocument(page);
-      await fileInput(page).setInputFiles(samplePath);
+      await chooseSample(page);
       await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
 
       await goToLayoutPage(page);
@@ -278,7 +244,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
   test("shows the kept results in the new language after switching it", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream()));
     await page.goto("/");
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
     await statusFilter(page, /^Cancelada: 2$/).click();
 
@@ -319,7 +285,7 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
     );
     await page.goto("/");
     await markDocument(page);
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(resultsSection(page)).toBeVisible();
     await expect(uploadSection(page)).toContainText("10 títulos lidos em meu_cnab.rem.");
 
@@ -348,7 +314,7 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
     try {
       await page.goto("/");
       await markDocument(page);
-      await fileInput(page).setInputFiles(samplePath);
+      await chooseSample(page);
       await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
 
       const aborted = page.waitForEvent("requestfailed", (request) =>
@@ -367,7 +333,7 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
   test("starts empty after a reload", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream()));
     await page.goto("/");
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
 
     await page.reload();

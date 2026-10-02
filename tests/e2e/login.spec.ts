@@ -1,8 +1,8 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+import { wcagViolations } from "./support/a11y";
+
 const apiDocumentationUrl = "https://symphony.fattorcredito.com.br/public/prova-dev/swagger";
 
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -73,7 +73,7 @@ async function openHydrated(page: Page) {
 }
 
 async function expectNoAxeViolations(page: Page) {
-  expect((await new AxeBuilder({ page }).withTags(wcagTags).analyze()).violations).toEqual([]);
+  expect(await wcagViolations(page)).toEqual([]);
 }
 
 async function skipBrowserValidation(page: Page) {

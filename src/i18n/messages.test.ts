@@ -17,6 +17,13 @@ function collectEntries(value: unknown, prefix = ""): [string, unknown][] {
 
 const catalogs = { en, "pt-BR": ptBR };
 
+function argumentNames(message: unknown): string[] {
+  const names = [...String(message).matchAll(/\{\s*(\w+)\s*[,}]/g)].flatMap(
+    (match) => match[1] ?? [],
+  );
+  return [...new Set(names)].sort();
+}
+
 describe("message catalogs", () => {
   it("define exactly the same keys in every locale", () => {
     const keysByLocale = Object.values(catalogs).map((catalog) =>
@@ -35,6 +42,23 @@ describe("message catalogs", () => {
       expect(typeof value, key).toBe("string");
       expect(String(value).trim(), key).not.toBe("");
     }
+  });
+
+  it("use the same ICU arguments in every locale", () => {
+    const portugueseByKey = new Map(collectEntries(ptBR));
+
+    for (const [key, message] of collectEntries(en)) {
+      expect(argumentNames(portugueseByKey.get(key)), key).toEqual(argumentNames(message));
+    }
+  });
+
+  it("tells apart messages that use different ICU arguments", () => {
+    expect(argumentNames("{count, plural, one {# item} other {# items}}")).not.toEqual(
+      argumentNames("{total, plural, one {# item} other {# itens}}"),
+    );
+    expect(
+      argumentNames("Line {lineNumber}: {actual, plural, =0 {is empty} other {# chars}}"),
+    ).toEqual(["actual", "lineNumber"]);
   });
 });
 

@@ -1,7 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+import { wcagViolations } from "./support/a11y";
 
 const copyByLocale = {
   en: {
@@ -43,9 +42,7 @@ for (const [locale, copy] of Object.entries(copyByLocale)) {
         await page.emulateMedia({ colorScheme });
         await page.goto("/");
 
-        const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-        expect(results.violations).toEqual([]);
+        expect(await wcagViolations(page)).toEqual([]);
       });
     }
   });

@@ -1,46 +1,25 @@
 import { readFileSync } from "node:fs";
 
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { buildRemittance, fulfillStream, fullStream, interruptedStream } from "./remittance-stream";
+import { wcagViolations } from "./support/a11y";
 import {
-  buildRemittance,
-  fulfillStream,
-  fullStream,
-  interruptedStream,
+  chooseRemittance,
+  fileInput,
+  listAnnouncement,
+  pagination,
   resultsSection,
+  statusFilter,
   visibleRowFor,
   visibleRows,
-} from "./remittance-stream";
+} from "./support/locators";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const remittance = buildRemittance(30);
-
-async function chooseRemittance(page: Page) {
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "remessa-30.rem",
-    mimeType: "application/octet-stream",
-    buffer: remittance.buffer,
-  });
-}
-
-function pagination(page: Page) {
-  return resultsSection(page).getByRole("navigation", { name: "Páginas dos resultados" });
-}
-
-function listAnnouncement(page: Page) {
-  return resultsSection(page).getByRole("status");
-}
 
 function nextPage(page: Page) {
   return pagination(page).getByRole("button", { name: "Próxima", exact: true });
-}
-
-function statusFilter(page: Page, name: RegExp) {
-  return resultsSection(page)
-    .getByRole("group", { name: "Filtrar por situação" })
-    .getByRole("button", { name });
 }
 
 function exportButton(page: Page, name: string) {
@@ -73,7 +52,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("pages through the results and keeps the focus on the controls", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
 
     await expect(pagination(page)).toContainText("1–25 de 30");
     await expect(pagination(page)).toContainText("Página 1 de 2");
@@ -97,7 +76,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("filters by status from the summary and returns to the first page", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await nextPage(page).click();
     await expect(listAnnouncement(page)).toHaveText("Página 2 de 2");
 
@@ -124,7 +103,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("returns to the first page when a filter still spans several pages", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await pagination(page).getByLabel("Títulos por página").selectOption("10");
     const next = nextPage(page);
     await next.click();
@@ -144,7 +123,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("drops the page announcement when the filters are cleared", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await statusFilter(page, /^Autorizada: 15$/).click();
     await pagination(page).getByLabel("Títulos por página").selectOption("10");
     await nextPage(page).click();
@@ -171,7 +150,7 @@ test.describe("results list (pt-BR)", () => {
     });
 
     try {
-      await chooseRemittance(page);
+      await chooseRemittance(page, remittance);
       await pagination(page).getByLabel("Títulos por página").selectOption("10");
       await statusFilter(page, /^Autorizada: 15$/).click();
       await nextPage(page).click();
@@ -195,7 +174,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("searches by any part of the key, ignoring separators", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     const target = remittance.receivables[16]?.key ?? "";
     const spaced = target.replace(/(\d{4})(?=\d)/g, "$1 ");
 
@@ -221,7 +200,7 @@ test.describe("results list (pt-BR)", () => {
 
   test("exports the filtered rows of every page as CSV", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await expect(pagination(page)).toContainText("1–25 de 30");
 
     const everything = await downloadCsv(page, "Exportar 30 títulos (CSV)");
@@ -249,7 +228,7 @@ test.describe("results list (pt-BR)", () => {
       await responseReleased;
       await fulfillStream(fullStream(remittance.receivables))(route);
     });
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
 
     const button = exportButton(page, "Exportar 30 títulos (CSV)");
     await expect(button).toHaveAttribute("aria-disabled", "true");
@@ -276,7 +255,7 @@ test.describe("results list (pt-BR)", () => {
     await page.route("**/api/remittances", async (route) => {
       await fulfillStream(bodies[attempts++] ?? "")(route);
     });
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
 
     const notChecked = statusFilter(page, /^Não consultado: 27$/);
     await notChecked.click();
@@ -313,7 +292,7 @@ test.describe("results search announcement (pt-BR)", () => {
     await page.clock.install({ time: new Date("2026-10-02T09:00:00Z") });
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await expect(pagination(page)).toContainText("1–25 de 30");
     await page.clock.pauseAt(new Date("2026-10-02T10:00:00Z"));
     const target = remittance.receivables[16]?.key ?? "";
@@ -335,7 +314,7 @@ test.describe("results list sorting (pt-BR)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await expect(pagination(page)).toContainText("1–25 de 30");
   });
 
@@ -427,7 +406,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await expect(pagination(page)).toContainText("1–25 de 30");
 
     expect(await pageOverflow(page)).toBe(0);
@@ -451,10 +430,10 @@ test.describe("results list layout on desktop (pt-BR)", () => {
   test("shrinks the file picker once the file is ready", async ({ page }) => {
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    const picker = page.locator("label").filter({ has: page.locator('input[type="file"]') });
+    const picker = page.locator("label").filter({ has: fileInput(page) });
     expect((await picker.boundingBox())?.height ?? 0).toBeGreaterThan(100);
 
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
 
     await expect
       .poll(async () => (await picker.boundingBox())?.height ?? Number.POSITIVE_INFINITY)
@@ -466,7 +445,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto("/");
     const shortLines = Array.from({ length: 60 }, () => "1").join("\n");
-    await page.locator('input[type="file"]').setInputFiles({
+    await fileInput(page).setInputFiles({
       name: "quebrado.rem",
       mimeType: "application/octet-stream",
       buffer: Buffer.from(`${shortLines}\n`, "latin1"),
@@ -492,7 +471,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
       "**/api/remittances",
       fulfillStream(interruptedStream(remittance.receivables, 20)),
     );
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await expect(resultsSection(page).getByRole("alert")).toBeVisible();
     await expect(page.getByRole("main")).toHaveCSS("overflow-y", "visible");
     await expect(page.locator('[data-slot="page-scroller"]')).toHaveCSS("overflow-y", "auto");
@@ -510,7 +489,7 @@ test.describe("results list layout on desktop (pt-BR)", () => {
     await page.setViewportSize({ width: 1280, height: 560 });
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
     await expect(pagination(page)).toContainText("1–25 de 30");
 
     expect(await pageOverflow(page)).toBeGreaterThan(0);
@@ -525,15 +504,13 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       await page.goto("/");
       await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-      await chooseRemittance(page);
+      await chooseRemittance(page, remittance);
       await statusFilter(page, /^Autorizada: 15$/).click();
       await searchBox(page).fill("0");
       await pagination(page).getByLabel("Títulos por página").selectOption("10");
       await expect(pagination(page)).toContainText("Página 1 de 2");
 
-      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-      expect(results.violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
   });
 }
@@ -544,7 +521,7 @@ test.describe("results export (en)", () => {
   test("uses English labels and a comma as the delimiter", async ({ page }) => {
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
-    await chooseRemittance(page);
+    await chooseRemittance(page, remittance);
 
     const { fileName, lines } = await downloadCsv(page, "Export 30 receivables (CSV)");
 

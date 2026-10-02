@@ -1,15 +1,15 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-import { fulfillStream, fullStream, samplePath, sampleReceivables } from "./remittance-stream";
+import { fulfillStream, fullStream, sampleReceivables } from "./remittance-stream";
+import { wcagViolations } from "./support/a11y";
+import { chooseSample } from "./support/locators";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const firstKey = sampleReceivables[0]?.key ?? "";
 
 async function checkSample(page: Page, againLabel: string) {
   await page.route("**/api/remittances", fulfillStream(fullStream()));
-  await page.locator('input[type="file"]').setInputFiles(samplePath);
+  await chooseSample(page);
   await expect(page.getByRole("button", { name: againLabel })).toBeVisible();
 }
 
@@ -176,7 +176,7 @@ test.describe("receivable detail during a check (pt-BR)", () => {
       await fulfillStream(fullStream())(route);
     });
     await page.goto("/");
-    await page.locator('input[type="file"]').setInputFiles(samplePath);
+    await chooseSample(page);
 
     await detailButton(page, "Detalhes do título 1").click();
     const dialog = page.getByRole("dialog", { name: "Título 1" });
@@ -199,9 +199,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await detailButton(page, "Detalhes do título 2").click();
       await expect(page.getByRole("dialog", { name: "Título 2" })).toBeVisible();
 
-      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-      expect(results.violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
   });
 }

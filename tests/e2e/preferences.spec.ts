@@ -1,8 +1,7 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { BrowserContext, Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+import { wcagViolations } from "./support/a11y";
 
 const backgroundByTheme = {
   light: "rgb(246, 248, 250)",
@@ -120,9 +119,7 @@ test.describe("theme switcher", () => {
       await page.emulateMedia({ colorScheme: opposite[theme] });
       await page.goto("/");
 
-      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-      expect(results.violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
   }
 

@@ -1,8 +1,7 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+import { wcagViolations } from "./support/a11y";
 
 function mainNavigation(page: Page, name: string) {
   return page.getByRole("navigation", { name });
@@ -181,9 +180,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await page.goto("/cnab-444");
 
-      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-      expect(results.violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
   });
 }
