@@ -1,0 +1,16 @@
+{
+  "pt-BR": {
+    "title": "Algo deu errado",
+    "description": "O aplicativo encontrou um erro inesperado. Tente de novo em instantes.",
+    "retry": "Tentar de novo",
+    "home": "Voltar ao início",
+    "errorCode": "Código do erro:"
+  },
+  "en": {
+    "title": "Something went wrong",
+    "description": "The app ran into an unexpected error. Please try again in a moment.",
+    "retry": "Try again",
+    "home": "Back to home",
+    "errorCode": "Error code:"
+  }
+}

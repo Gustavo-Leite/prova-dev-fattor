@@ -260,6 +260,13 @@
     "description": "The page you are looking for does not exist.",
     "backHome": "Back to home"
   },
+  "errorPage": {
+    "title": "Something went wrong",
+    "description": "This page could not be displayed because of an unexpected error. Please try again in a moment.",
+    "retry": "Try again",
+    "home": "Back to home",
+    "errorCode": "Error code:"
+  },
   "footer": {
     "disclaimer": "Technical assessment project — not an official Fattor Crédito product."
   },
