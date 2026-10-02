@@ -21,7 +21,7 @@ const statusBadgeVariants = cva(
   },
 );
 
-export type StatusBadgeTone = InvoiceStatus | "failed" | "pending";
+type StatusBadgeTone = InvoiceStatus | "failed" | "pending";
 
 export interface StatusBadgeProps {
   readonly tone: StatusBadgeTone;

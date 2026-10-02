@@ -1,12 +1,6 @@
-export const upstreamStatusValues = [
-  "autorizada",
-  "cancelada",
-  "rejeitada",
-  "denegada",
-  "nao_encontrada",
-] as const;
+import type { FattorSituacao } from "@/infra/fattor/fattor-api.contract";
 
-export type UpstreamStatusValue = (typeof upstreamStatusValues)[number];
+export type UpstreamStatusValue = FattorSituacao;
 
 export function statusResponseBody(situacao: UpstreamStatusValue, chaveNfe: string) {
   return {

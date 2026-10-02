@@ -34,6 +34,16 @@ export function toKilobytes(bytes: number): number {
   return Math.floor(bytes / 1024);
 }
 
+const printableAscii = /^[\x21-\x7E]$/;
+
+function showCharacter(character: string): string {
+  if (printableAscii.test(character)) {
+    return character;
+  }
+  const codePoint = character.codePointAt(0) ?? 0;
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+
 function assertNever(value: never): never {
   throw new Error(`Unhandled value: ${JSON.stringify(value)}`);
 }
@@ -61,7 +71,7 @@ export function describeRemittanceIssue(issue: Cnab444Issue): RemittanceMessage 
           }
         : {
             key: "issues.UNEXPECTED_RECORD_TYPE",
-            values: { lineNumber: issue.lineNumber, expected, actual: issue.actual },
+            values: { lineNumber: issue.lineNumber, expected, actual: showCharacter(issue.actual) },
           };
     }
     case "RECORD_COUNT_MISMATCH":
