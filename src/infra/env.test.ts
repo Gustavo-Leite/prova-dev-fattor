@@ -4,6 +4,7 @@ import {
   InvalidServerEnvError,
   maxSignInPasswordLength,
   maxSignInEmailLength,
+  minSessionSecretDistinctCharacters,
   minSessionSecretLength,
   parseServerEnv,
 } from "@/infra/env";
@@ -97,7 +98,7 @@ describe("parseServerEnv", () => {
   });
 
   it("accepts a session secret at the minimum length and rejects a shorter one", () => {
-    const atMinimum = "s".repeat(minSessionSecretLength);
+    const atMinimum = "abcdefgh".repeat(minSessionSecretLength / 8);
 
     expect(minSessionSecretLength).toBe(32);
     expect(parseServerEnv({ ...validSource, SESSION_SECRET: atMinimum }).sessionSecret).toBe(
@@ -106,6 +107,20 @@ describe("parseServerEnv", () => {
     expect(() => parseServerEnv({ ...validSource, SESSION_SECRET: atMinimum.slice(1) })).toThrow(
       "SESSION_SECRET",
     );
+  });
+
+  it("rejects a long session secret with too few distinct characters", () => {
+    const repetitive = "abcdefg".repeat(10);
+    const varied = "abcdefgh".repeat(10);
+
+    expect(minSessionSecretDistinctCharacters).toBe(8);
+    expect(() => parseServerEnv({ ...validSource, SESSION_SECRET: repetitive })).toThrow(
+      "SESSION_SECRET",
+    );
+    expect(() => parseServerEnv({ ...validSource, SESSION_SECRET: "a".repeat(64) })).toThrow(
+      "SESSION_SECRET",
+    );
+    expect(parseServerEnv({ ...validSource, SESSION_SECRET: varied }).sessionSecret).toBe(varied);
   });
 
   it("rejects the empty session secret copied from .env.example", () => {

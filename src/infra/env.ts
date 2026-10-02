@@ -5,6 +5,7 @@ import { z } from "zod";
 export const maxSignInEmailLength = 254;
 export const maxSignInPasswordLength = 256;
 export const minSessionSecretLength = 32;
+export const minSessionSecretDistinctCharacters = 8;
 
 const serverEnvSchema = z
   .object({
@@ -27,7 +28,12 @@ const serverEnvSchema = z
       .pipe(z.email().max(maxSignInEmailLength))
       .transform((value) => value.toLowerCase()),
     SIGN_IN_PASSWORD: z.string().min(1).max(maxSignInPasswordLength),
-    SESSION_SECRET: z.string().min(minSessionSecretLength),
+    SESSION_SECRET: z
+      .string()
+      .min(minSessionSecretLength)
+      .refine((value) => new Set(value).size >= minSessionSecretDistinctCharacters, {
+        message: "Must be random, e.g. generated with: openssl rand -base64 32",
+      }),
   })
   .transform((env) => ({
     sessionSecret: env.SESSION_SECRET,
