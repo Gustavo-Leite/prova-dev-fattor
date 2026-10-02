@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { maxUploadBytes } from "@/app/api/remittances/handle-remittance-upload";
-import { defaultRemittanceCheckPolicy } from "@/application/remittance/check-remittance";
+import {
+  defaultRemittanceCheckPolicy,
+  maxUploadBytes,
+} from "@/application/remittance/check-remittance";
 import { RemittanceChecker } from "@/features/remittance/remittance-checker";
 
 export async function generateMetadata(): Promise<Metadata> {

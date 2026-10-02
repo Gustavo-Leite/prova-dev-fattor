@@ -6,11 +6,11 @@ import type {
 import {
   checkRemittance,
   defaultRemittanceCheckPolicy,
+  maxUploadBytes,
+  multipartOverheadBytes,
 } from "@/application/remittance/check-remittance";
 import type { InvoiceStatusGateway } from "@/application/remittance/invoice-status-gateway";
-
-export const maxUploadBytes = 128 * 1024;
-export const multipartOverheadBytes = 16 * 1024;
+import type { RemittanceUploadError } from "@/features/remittance/upload-error";
 
 export interface RemittanceUploadDependencies {
   readonly readSession: (sessionCookie: string | undefined) => Promise<string | null>;
@@ -24,7 +24,7 @@ const contentLengthPattern = /^\d+$/;
 
 const noStore = { "cache-control": "no-store" } as const;
 
-function errorResponse(status: number, body: { readonly code: string }): Response {
+function errorResponse(status: number, body: RemittanceUploadError): Response {
   return Response.json(body, { status, headers: noStore });
 }
 
@@ -104,7 +104,7 @@ export function createRemittanceUploadHandler(dependencies: RemittanceUploadDepe
     if (contentLength === null || !contentLengthPattern.test(contentLength)) {
       return errorResponse(411, { code: "LENGTH_REQUIRED" });
     }
-    const tooLarge = { code: "FILE_TOO_LARGE", maxBytes: uploadLimit };
+    const tooLarge: RemittanceUploadError = { code: "FILE_TOO_LARGE", maxBytes: uploadLimit };
     if (Number(contentLength) > uploadLimit + multipartOverheadBytes) {
       return errorResponse(413, tooLarge);
     }
