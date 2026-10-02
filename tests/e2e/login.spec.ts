@@ -97,7 +97,7 @@ test.describe("sign-in page (pt-BR)", () => {
   test("opens with a title, a heading and the link to the demo credentials", async ({ page }) => {
     await openHydrated(page);
 
-    await expect(page).toHaveTitle(copy.title);
+    await expect(page).toHaveTitle("Entrar · Consulta de Status CNAB 444");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
     const documentationLink = page.getByRole("link", {
       name: "Ver as credenciais de demonstração na documentação da API (abre em nova aba)",

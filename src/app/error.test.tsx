@@ -53,7 +53,7 @@ describe("ErrorPage", () => {
     const markup = renderErrorPage(new Error("boom"));
 
     expect(markup).toContain("<main");
-    expect(markup).toContain(`<title>${ptBR.errorPage.title}</title>`);
+    expect(markup).toContain(`<title>${ptBR.errorPage.title} · ${ptBR.metadata.title}</title>`);
     expect(markup).toContain(`>${ptBR.errorPage.title}</h1>`);
     expect(markup).toContain(ptBR.errorPage.description);
     expect(markup).toContain(ptBR.errorPage.retry);

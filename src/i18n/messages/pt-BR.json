@@ -1,6 +1,7 @@
 {
   "metadata": {
     "title": "Consulta de Status CNAB 444",
+    "pageTitle": "{page} · {app}",
     "description": "Envie um arquivo de remessa CNAB 444 e consulte a situação de cada nota fiscal."
   },
   "home": {

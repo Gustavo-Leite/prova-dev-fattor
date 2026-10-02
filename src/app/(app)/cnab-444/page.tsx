@@ -22,8 +22,9 @@ const sectionTitleClassName = "text-base font-semibold sm:text-lg";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("cnab.layout");
+  const tMetadata = await getTranslations("metadata");
   return {
-    title: t("metadataTitle"),
+    title: tMetadata("pageTitle", { page: t("metadataTitle"), app: tMetadata("title") }),
   };
 }
 

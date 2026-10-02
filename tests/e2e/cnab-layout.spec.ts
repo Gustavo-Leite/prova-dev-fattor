@@ -21,7 +21,7 @@ test.describe("cnab 444 layout page (pt-BR)", () => {
     await navigation.getByRole("link", { name: "Layout CNAB 444" }).click();
 
     await expect(page).toHaveURL(/\/cnab-444$/);
-    await expect(page).toHaveTitle("Layout do CNAB 444");
+    await expect(page).toHaveTitle("Layout do CNAB 444 · Consulta de Status CNAB 444");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Layout do CNAB 444");
     await expect(navigation.getByRole("link", { name: "Layout CNAB 444" })).toHaveAttribute(
       "aria-current",
@@ -191,7 +191,7 @@ test.describe("cnab 444 layout page (en)", () => {
   test("shows the labels and decoded values in English", async ({ page }) => {
     await page.goto("/cnab-444");
 
-    await expect(page).toHaveTitle("CNAB 444 layout");
+    await expect(page).toHaveTitle("CNAB 444 layout · CNAB 444 Status Checker");
     await expect(
       mainNavigation(page, "Main").getByRole("link", { name: "CNAB 444 layout" }),
     ).toHaveAttribute("aria-current", "page");

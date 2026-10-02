@@ -12,10 +12,11 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, retry }: ErrorPageProps) {
   const t = useTranslations("errorPage");
+  const tMetadata = useTranslations("metadata");
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center p-8">
-      <title>{t("title")}</title>
+      <title>{tMetadata("pageTitle", { page: t("title"), app: tMetadata("title") })}</title>
       <ErrorFallback
         title={t("title")}
         description={t("description")}
