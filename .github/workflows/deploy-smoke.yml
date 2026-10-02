@@ -1,0 +1,55 @@
+name: Deploy smoke
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: "0"
+
+jobs:
+  smoke:
+    name: smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: deploy-smoke
+      cancel-in-progress: true
+    env:
+      SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL }}
+      SMOKE_SIGN_IN_EMAIL: ${{ secrets.SMOKE_SIGN_IN_EMAIL }}
+      SMOKE_SIGN_IN_PASSWORD: ${{ secrets.SMOKE_SIGN_IN_PASSWORD }}
+    steps:
+      - name: Require the smoke configuration
+        run: |
+          missing=0
+          for name in SMOKE_BASE_URL SMOKE_SIGN_IN_EMAIL SMOKE_SIGN_IN_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not configured"
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: >-
+          docker run --rm -e CI -e SMOKE_BASE_URL -e SMOKE_SIGN_IN_EMAIL -e SMOKE_SIGN_IN_PASSWORD
+          -v "$PWD:/work" -w /work
+          -v "$(readlink -f "$(command -v bun)"):/usr/local/bin/bun:ro"
+          mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+          bun run test:smoke
