@@ -36,6 +36,7 @@ export async function SignInHero({ logo }: SignInHeroProps) {
             alt=""
             width={28}
             height={28}
+            loading="eager"
             className="size-7 shrink-0 rounded-md bg-white p-0.5"
           />
           <span>{t("appBar.name")}</span>

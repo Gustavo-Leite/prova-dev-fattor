@@ -1,5 +1,3 @@
-"use client";
-
 import { useFormatter, useTranslations } from "next-intl";
 
 import type { AccessKeyField, AccessKeyParts } from "@/domain/cnab/access-key";
