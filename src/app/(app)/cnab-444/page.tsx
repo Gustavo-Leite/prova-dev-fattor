@@ -45,7 +45,11 @@ export default async function Cnab444Layout() {
   }));
 
   return (
-    <main className="relative mx-auto flex w-full max-w-7xl flex-1 shrink-0 flex-col gap-8 px-4 py-4 sm:px-6 lg:px-8">
+    <main
+      id="main"
+      tabIndex={-1}
+      className="relative mx-auto flex w-full max-w-7xl flex-1 shrink-0 flex-col gap-8 px-4 py-4 outline-none sm:px-6 lg:px-8"
+    >
       <header className="flex flex-col gap-2">
         <h1 className="text-lg font-semibold sm:text-xl">{t("title")}</h1>
         <p className="max-w-prose text-sm">

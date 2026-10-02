@@ -20,7 +20,9 @@ export interface RemittanceUploadProps {
 }
 
 function preventBrowserFileOpen(event: globalThis.DragEvent) {
-  event.preventDefault();
+  if (event.dataTransfer?.types.includes("Files")) {
+    event.preventDefault();
+  }
 }
 
 export function RemittanceUpload({ limits }: RemittanceUploadProps) {

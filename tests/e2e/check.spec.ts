@@ -258,9 +258,7 @@ test.describe("status check (pt-BR)", () => {
     await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeFocused();
 
     await resultsSection(page).getByRole("heading", { name: "Situação das notas" }).click();
-    await expect
-      .poll(() => page.evaluate(() => document.activeElement === document.body))
-      .toBe(true);
+    await expect(page.getByRole("button", { name: "Consultando…", exact: true })).not.toBeFocused();
     releaseSecondCheck();
 
     await expect(signInLink(page)).toBeVisible();

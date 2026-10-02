@@ -33,6 +33,21 @@ async function dropFiles(page: Page, files: readonly { name: string; content: st
   }, files);
 }
 
+async function isDragCancelled(page: Page, payload: "file" | "text") {
+  return page.evaluate((kind) => {
+    const transfer = new DataTransfer();
+    if (kind === "file") {
+      transfer.items.add(new File(["x"], "a.rem"));
+    } else {
+      transfer.setData("text/plain", "x");
+    }
+    return ["dragover", "drop"].map(
+      (type) =>
+        !window.dispatchEvent(new DragEvent(type, { cancelable: true, dataTransfer: transfer })),
+    );
+  }, payload);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/remittances", fulfillStream(fullStream()));
 });
@@ -106,6 +121,14 @@ test.describe("remittance upload (pt-BR)", () => {
       ]);
 
       await expect(uploadAlert(page)).toContainText("Envie um arquivo por vez.");
+    });
+
+    test("keeps the browser from opening a dropped file but lets text drops through", async ({
+      page,
+    }) => {
+      await expect.poll(() => isDragCancelled(page, "file")).toEqual([true, true]);
+
+      expect(await isDragCancelled(page, "text")).toEqual([false, false]);
     });
 
     test("can be reached from the keyboard with a visible focus", async ({ page }) => {

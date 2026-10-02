@@ -278,6 +278,7 @@
       "layout": "CNAB 444 layout"
     },
     "signOut": "Sign out",
+    "skipToContent": "Skip to content",
     "theme": {
       "label": "Theme",
       "system": "Follow the system theme",

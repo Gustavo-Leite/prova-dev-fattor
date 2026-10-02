@@ -350,6 +350,17 @@ test.describe("results list sorting (pt-BR)", () => {
     await expect(firstRow(page)).toContainText("linha 2 do arquivo");
   });
 
+  test("heads each table row with the receivable number", async ({ page, isMobile }) => {
+    test.skip(isMobile, "phones list the results as cards");
+    const rowHeaders = resultsSection(page).getByRole("rowheader");
+
+    await expect(rowHeaders).toHaveCount(25);
+    const firstHeader = firstRow(page).getByRole("rowheader");
+    await expect(firstHeader).toHaveAttribute("scope", "row");
+    await expect(firstHeader).toContainText("1");
+    await expect(firstHeader).toContainText("linha 2 do arquivo");
+  });
+
   test("announces the first page after sorting only once a page was announced", async ({
     page,
     isMobile,

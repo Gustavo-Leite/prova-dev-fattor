@@ -278,6 +278,7 @@
       "layout": "Layout CNAB 444"
     },
     "signOut": "Sair",
+    "skipToContent": "Pular para o conteúdo",
     "theme": {
       "label": "Tema",
       "system": "Seguir o tema do sistema",

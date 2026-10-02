@@ -66,12 +66,12 @@ export function ResultTableRow({ row, handle, statusLabel, isChecking }: RowView
         openFromRow(event, trigger.current);
       }}
     >
-      <TableCell>
+      <th scope="row" className="p-2 text-left align-middle font-normal whitespace-nowrap">
         <span className="font-medium tabular-nums">{row.ordinal}</span>
         <span className="block text-xs text-muted-foreground">
           {t("fileLine", { lineNumber: row.lineNumber })}
         </span>
-      </TableCell>
+      </th>
       <TableCell>
         <span className="inline-flex items-center gap-2">
           <span className="font-mono text-xs">{row.invoiceAccessKey}</span>

@@ -342,3 +342,24 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
     await expect(resultsSection(page)).toHaveCount(0);
   });
 });
+
+test.describe("skip link (pt-BR)", () => {
+  test.use({ locale: "pt-BR" });
+
+  for (const path of ["/", "/cnab-444"]) {
+    test(`moves the focus to the main content of ${path}`, async ({ page }) => {
+      await page.goto(path);
+      const skipLink = page.getByRole("link", { name: "Pular para o conteúdo", exact: true });
+
+      await page.keyboard.press("Tab");
+      await expect(skipLink).toBeFocused();
+      const box = await skipLink.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThan(1);
+      expect(box?.height ?? 0).toBeGreaterThan(1);
+
+      await page.keyboard.press("Enter");
+      await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("main");
+      await expect(page.getByRole("main")).toBeFocused();
+    });
+  }
+});
