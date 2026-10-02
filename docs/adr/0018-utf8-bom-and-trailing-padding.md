@@ -1,9 +1,9 @@
 # 0018. BOM UTF-8 e fim do arquivo tolerante
 
-- Status: Aceito
+- Status: Substituído parcialmente por 0021
 - Data: 2026-10-02
 - Substitui: 0010 (parcialmente: decodificação e fim do arquivo)
-- Substituído por: —
+- Substituído por: 0021 (parcialmente: caracteres aceitos e linhas finais de preenchimento)
 
 ## Contexto
 

@@ -44,11 +44,24 @@ export type Cnab444ParseResult =
 export const maxReportedIssues = 50;
 
 const lineBreakPattern = /\r?\n/;
-const paddingLinePattern = /^[\s\u0000\u001a]*$/u;
+const paddingLinePattern = /^[ \t\u0000\u001a]*$/;
 const recordCountPattern = /^\d{1,8}$/;
 const minimumLineCount = 3;
 const endOfFileFillerCodes: ReadonlySet<number> = new Set([0x0a, 0x0d, 0x00, 0x1a]);
-const byteOrderMarkCode = 0xfeff;
+const softHyphenCode = 0xad;
+
+function isDeleteOrC1Code(code: number): boolean {
+  return code >= 0x7f && code <= 0x9f;
+}
+
+const printableWindows1252Codes: ReadonlySet<number> = new Set(
+  Array.from(
+    new TextDecoder("windows-1252").decode(
+      Uint8Array.from({ length: 0x100 - 0x20 }, (_, index) => 0x20 + index),
+    ),
+    (character) => character.charCodeAt(0),
+  ).filter((code) => !isDeleteOrC1Code(code) && code !== softHyphenCode),
+);
 
 function isEndOfFileFiller(code: number): boolean {
   return endOfFileFillerCodes.has(code);
@@ -75,7 +88,7 @@ function splitLines(content: string): string[] {
 }
 
 function isInvalidCharacter(code: number): boolean {
-  return code <= 0x1f || (code >= 0x7f && code <= 0x9f) || code === byteOrderMarkCode;
+  return !printableWindows1252Codes.has(code);
 }
 
 function hasInvalidCharacters(line: string): boolean {

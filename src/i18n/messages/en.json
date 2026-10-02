@@ -118,7 +118,7 @@
     },
     "issues": {
       "EMPTY_FILE": "The file is empty.",
-      "INVALID_CHARACTERS": "Line {lineNumber}: contains control characters.",
+      "INVALID_CHARACTERS": "Line {lineNumber}: contains invisible characters or characters not allowed in a remittance file.",
       "INVALID_LINE_LENGTH": "Line {lineNumber}: {actual, plural, =0 {is empty} one {has # character} other {has # characters}}; {expected} are expected.",
       "UNEXPECTED_RECORD_TYPE": "Line {lineNumber}: record of type “{actual}”; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
       "UNEXPECTED_BLANK_LINE": "Line {lineNumber}: is blank; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",

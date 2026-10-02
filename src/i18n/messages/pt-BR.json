@@ -118,7 +118,7 @@
     },
     "issues": {
       "EMPTY_FILE": "O arquivo está vazio.",
-      "INVALID_CHARACTERS": "Linha {lineNumber}: contém caracteres de controle.",
+      "INVALID_CHARACTERS": "Linha {lineNumber}: contém caracteres invisíveis ou não permitidos em uma remessa.",
       "INVALID_LINE_LENGTH": "Linha {lineNumber}: {actual, plural, =0 {está vazia} one {tem # caractere} other {tem # caracteres}}; o esperado são {expected}.",
       "UNEXPECTED_RECORD_TYPE": "Linha {lineNumber}: registro do tipo “{actual}”; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
       "UNEXPECTED_BLANK_LINE": "Linha {lineNumber}: está em branco; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",

@@ -136,7 +136,66 @@ describe("parseCnab444 with the sample file re-encoded", () => {
       parseCnab444(decodeRemittance(Uint8Array.from([...byteOrderMark, ...utf8Bytes(content)]))),
     ).toEqual({
       ok: false,
-      errors: [{ code: "INVALID_LINE_LENGTH", lineNumber: 2, expected: lineLength, actual: 445 }],
+      errors: [
+        { code: "INVALID_CHARACTERS", lineNumber: 2 },
+        { code: "INVALID_LINE_LENGTH", lineNumber: 2, expected: lineLength, actual: 445 },
+      ],
+      truncated: false,
+    });
+  });
+
+  it.each([
+    ["a right-to-left override", String.fromCodePoint(0x202e)],
+    ["a zero-width space", String.fromCodePoint(0x200b)],
+    ["a left-to-right isolate", String.fromCodePoint(0x2066)],
+    ["a combining accent", `E${String.fromCodePoint(0x0301)}`],
+    ["a Hangul filler", String.fromCodePoint(0x3164)],
+    ["a line separator", String.fromCodePoint(0x2028)],
+    ["a character outside the BMP over two columns", String.fromCodePoint(0x1f600)],
+  ])("rejects %s in a UTF-8 file with a byte order mark", (_description, name) => {
+    const decoded = decodeRemittance(
+      Uint8Array.from([...byteOrderMark, ...utf8Bytes(withPayerName(name))]),
+    );
+    expect(decoded.split("\r\n")[1]).toHaveLength(lineLength);
+    expect(parseCnab444(decoded)).toEqual({
+      ok: false,
+      errors: [{ code: "INVALID_CHARACTERS", lineNumber: 2 }],
+      truncated: false,
+    });
+  });
+
+  it("rejects a soft hyphen in a windows-1252 file", () => {
+    const softHyphen = String.fromCodePoint(0xad);
+    expect(parseCnab444(decodeRemittance(latin1Bytes(withPayerName(softHyphen))))).toEqual({
+      ok: false,
+      errors: [{ code: "INVALID_CHARACTERS", lineNumber: 2 }],
+      truncated: false,
+    });
+  });
+
+  it("accepts the euro sign from a windows-1252 file", () => {
+    const bytes = latin1Bytes(withPayerName("E"));
+    bytes[lineLength + 2 + payerNameStart - 1] = 0x80;
+    const result = parseCnab444(decodeRemittance(bytes));
+    assert(result.ok);
+    expect(result.lines[1]?.charAt(payerNameStart - 1)).toBe("€");
+  });
+
+  it.each([
+    ["a byte order mark", String.fromCodePoint(0xfeff)],
+    ["a no-break space", String.fromCodePoint(0xa0)],
+    ["a carriage return between spaces", " \r "],
+  ])("reports a final line with only %s", (_description, padding) => {
+    expect(parseCnab444(`${sampleLines.join("\n")}\n${padding}`).ok).toBe(false);
+  });
+
+  it("drops a final line with only tabs but rejects a tab inside a record", () => {
+    const padded = parseCnab444(`${sampleLines.join("\n")}\n\t \t`);
+    assert(padded.ok);
+    expect(padded.lines).toEqual(sampleLines);
+    expect(parseCnab444(withPayerName("\t"))).toEqual({
+      ok: false,
+      errors: [{ code: "INVALID_CHARACTERS", lineNumber: 2 }],
       truncated: false,
     });
   });
