@@ -1,9 +1,9 @@
 # 0012. Filtros, busca e paginação da lista de resultados
 
-- Status: Aceito
+- Status: Substituído parcialmente por 0019
 - Data: 2026-09-30
 - Substitui: —
-- Substituído por: —
+- Substituído por: 0019 (parcialmente: anúncio da página atual)
 
 ## Contexto
 

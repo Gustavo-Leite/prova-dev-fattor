@@ -5,12 +5,16 @@ import {
   buildRemittance,
   fulfillStream,
   fullStream,
+  interruptedStream,
   ndjson,
   resultsSection,
   samplePath,
+  sampleReceivables,
   sampleResult,
   visibleRows,
 } from "./remittance-stream";
+
+const interruptedMessage = "A consulta foi interrompida antes do fim.";
 
 const remittance = buildRemittance(30);
 
@@ -36,6 +40,14 @@ function milestone(page: Page) {
 
 function filledAnnouncements(page: Page) {
   return page.getByRole("status").filter({ hasText: /^Consult|encontrad/ });
+}
+
+function listAnnouncement(page: Page) {
+  return resultsSection(page).getByRole("status");
+}
+
+function resultsAlert(page: Page) {
+  return resultsSection(page).getByRole("alert");
 }
 
 function pagination(page: Page) {
@@ -102,10 +114,11 @@ async function expectNarrowedViewKept(page: Page) {
   await expect(uploadStatus(page)).toBeEmpty();
   await expect(statusFilter(page, /^Autorizada: 15$/)).toHaveAttribute("aria-pressed", "true");
   await expect(pagination(page)).toContainText("11–15 de 15");
-  await expect(pagination(page).getByRole("status")).toHaveText("Página 2 de 2");
+  await expect(pagination(page)).toContainText("Página 2 de 2");
   await expect(pagination(page).getByLabel("Títulos por página")).toHaveValue("10");
   await expect(visibleRows(page)).toHaveCount(5);
   await expect(filledAnnouncements(page)).toHaveCount(0);
+  await expect(listAnnouncement(page)).toBeEmpty();
   await expect(page.locator("main :focus")).toHaveCount(0);
 }
 
@@ -144,7 +157,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
 
     await expect(milestone(page)).toHaveText("Consulta concluída: 30 títulos consultados.");
     await expect(pagination(page)).toContainText("1–25 de 30");
-    await expect(pagination(page).getByRole("status")).toHaveText("Página 1 de 2");
+    await expect(pagination(page)).toContainText("Página 1 de 2");
     await expect(pagination(page).getByLabel("Títulos por página")).toHaveValue("25");
     await expect(
       resultsSection(page)
@@ -185,6 +198,51 @@ test.describe("check kept across the app pages (pt-BR)", () => {
         resultsSection(page).getByRole("button", { name: "Consultar de novo" }),
       ).toBeVisible();
       expect(requests).toBe(1);
+    } finally {
+      releaseResponse();
+    }
+  });
+
+  test("keeps an interrupted check on screen without raising its alert again", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillStream(interruptedStream(sampleReceivables, 3)));
+    await page.goto("/");
+    await markDocument(page);
+    await fileInput(page).setInputFiles(samplePath);
+    await expect(resultsAlert(page)).toContainText(interruptedMessage);
+
+    await goToLayoutPage(page);
+    await goHome(page);
+
+    await expectSameDocument(page);
+    await expect(resultsSection(page).getByText(interruptedMessage)).toBeVisible();
+    await expect(resultsAlert(page)).toHaveCount(0);
+  });
+
+  test("raises the alert when a check left running is interrupted after coming back", async ({
+    page,
+  }) => {
+    let releaseResponse: () => void = () => undefined;
+    const responseReleased = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    await page.route("**/api/remittances", async (route) => {
+      await responseReleased;
+      await fulfillStream(interruptedStream(sampleReceivables, 3))(route);
+    });
+
+    try {
+      await page.goto("/");
+      await markDocument(page);
+      await fileInput(page).setInputFiles(samplePath);
+      await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
+
+      await goToLayoutPage(page);
+      await goHome(page);
+
+      releaseResponse();
+
+      await expectSameDocument(page);
+      await expect(resultsAlert(page)).toContainText(interruptedMessage);
     } finally {
       releaseResponse();
     }

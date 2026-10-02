@@ -65,6 +65,23 @@ export interface RemittanceResultsProps {
   readonly signInLink: RefObject<HTMLAnchorElement | null>;
 }
 
+const searchAnnouncementDelayMs = 500;
+
+interface PageAnnouncement {
+  readonly page: number;
+  readonly pageCount: number;
+  readonly phase: RemittanceCheckState["phase"];
+}
+
+interface AlertShownOnMount {
+  readonly phase: RemittanceCheckState["phase"];
+  readonly attempt: number | null;
+}
+
+function attemptOf(state: RemittanceCheckState): number | null {
+  return state.phase === "idle" ? null : state.attempt;
+}
+
 export function RemittanceResults({
   rows,
   lines,
@@ -90,6 +107,29 @@ export function RemittanceResults({
   ) {
     setFiltersShownOnMount(null);
   }
+  const [alertShownOnMount, setAlertShownOnMount] = useState<AlertShownOnMount | null>(() => ({
+    phase: state.phase,
+    attempt: attemptOf(state),
+  }));
+  if (
+    alertShownOnMount !== null &&
+    (state.phase !== alertShownOnMount.phase || attemptOf(state) !== alertShownOnMount.attempt)
+  ) {
+    setAlertShownOnMount(null);
+  }
+  const [pageAnnouncement, setPageAnnouncement] = useState<PageAnnouncement | null>(null);
+  if (pageAnnouncement !== null && pageAnnouncement.phase !== state.phase) {
+    setPageAnnouncement(null);
+  }
+  const [settledQuery, setSettledQuery] = useState(query);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSettledQuery(query);
+    }, searchAnnouncementDelayMs);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   const summary = summarizeRows(rows);
   const isChecking = state.phase === "checking";
@@ -109,22 +149,38 @@ export function RemittanceResults({
   const rowLabel = (row: ReceivableRow) =>
     row.state.kind === "failed" ? t(`failureReasons.${row.state.reason}`) : toneLabel(toneOf(row));
 
+  const announcePage = (target: ResultsView) => {
+    const landing = selectVisibleRows(rows, target);
+    setPageAnnouncement({
+      page: landing.pageIndex + 1,
+      pageCount: landing.pageCount,
+      phase: state.phase,
+    });
+  };
   const toggleTone = (tone: RowTone) => {
+    setPageAnnouncement(null);
     onViewChange({ type: "toneToggled", tone });
   };
   const changeQuery = (next: string) => {
+    setPageAnnouncement(null);
     onViewChange({ type: "queryChanged", query: next });
   };
   const clearFilters = () => {
+    setPageAnnouncement(null);
     onViewChange({ type: "filtersCleared" });
   };
   const changeSort = (next: RowSort) => {
+    if (pageAnnouncement !== null) {
+      announcePage({ ...view, sort: next, pageIndex: 0 });
+    }
     onViewChange({ type: "sortChanged", sort: next });
   };
   const changePageSize = (next: PageSize) => {
+    announcePage({ ...view, pageSize: next, pageIndex: 0 });
     onViewChange({ type: "pageSizeChanged", pageSize: next });
   };
   const changePage = (next: number) => {
+    announcePage({ ...view, pageIndex: next });
     onViewChange({ type: "pageChanged", pageIndex: next });
   };
   const exportRows = () => {
@@ -145,9 +201,17 @@ export function RemittanceResults({
   };
 
   const filterAnnouncement =
-    hasRows && hasFilters && hasChangedSinceMount && !isChecking
+    hasRows && hasFilters && hasChangedSinceMount && !isChecking && query === settledQuery
       ? t("filters.matches", { count: visible.filteredCount })
       : "";
+  const listAnnouncement =
+    pageAnnouncement === null
+      ? filterAnnouncement
+      : t("pagination.page", {
+          page: pageAnnouncement.page,
+          pageCount: pageAnnouncement.pageCount,
+        });
+  const alertRole = alertShownOnMount === null ? "alert" : undefined;
 
   const requestError =
     state.phase === "requestFailed" && state.error.code !== "ABORTED"
@@ -158,11 +222,11 @@ export function RemittanceResults({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <p role="status" className="sr-only">
-        {filterAnnouncement}
+        {listAnnouncement}
       </p>
 
       {requestError && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" role={alertRole}>
           <AlertTitle>{translate(requestError.summary)}</AlertTitle>
           {requestError.details.length > 0 && (
             <AlertDescription>
@@ -177,13 +241,13 @@ export function RemittanceResults({
         </Alert>
       )}
       {state.phase === "failed" && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" role={alertRole}>
           <AlertTitle>{t("check.credentialsRejected")}</AlertTitle>
           <SignInAgainLink ref={signInLink} />
         </Alert>
       )}
       {state.phase === "interrupted" && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" role={alertRole}>
           <AlertTitle>{t("check.interrupted")}</AlertTitle>
         </Alert>
       )}
