@@ -44,24 +44,56 @@ export type Cnab444ParseResult =
 export const maxReportedIssues = 50;
 
 const lineBreakPattern = /\r?\n/;
+const paddingLinePattern = /^[ \t\u0000\u001a]*$/;
 const recordCountPattern = /^\d{1,8}$/;
 const minimumLineCount = 3;
+const endOfFileFillerCodes: ReadonlySet<number> = new Set([0x0a, 0x0d, 0x00, 0x1a]);
+const softHyphenCode = 0xad;
+
+function isDeleteOrC1Code(code: number): boolean {
+  return code >= 0x7f && code <= 0x9f;
+}
+
+const printableWindows1252Codes: ReadonlySet<number> = new Set(
+  Array.from(
+    new TextDecoder("windows-1252").decode(
+      Uint8Array.from({ length: 0x100 - 0x20 }, (_, index) => 0x20 + index),
+    ),
+    (character) => character.charCodeAt(0),
+  ).filter((code) => !isDeleteOrC1Code(code) && code !== softHyphenCode),
+);
+
+function isEndOfFileFiller(code: number): boolean {
+  return endOfFileFillerCodes.has(code);
+}
+
+function withoutTrailingEndOfFileFiller(content: string): string {
+  let end = content.length;
+  while (end > 0 && isEndOfFileFiller(content.charCodeAt(end - 1))) {
+    end--;
+  }
+  return content.slice(0, end);
+}
+
+function isPaddingLine(line: string | undefined): boolean {
+  return line !== undefined && paddingLinePattern.test(line);
+}
 
 function splitLines(content: string): string[] {
-  const lines = content.split(lineBreakPattern);
-  while (lines.at(-1)?.trim() === "") {
+  const lines = withoutTrailingEndOfFileFiller(content).split(lineBreakPattern);
+  while (isPaddingLine(lines.at(-1))) {
     lines.pop();
   }
   return lines;
 }
 
-function isControlCharacter(code: number): boolean {
-  return code <= 0x1f || (code >= 0x7f && code <= 0x9f);
+function isInvalidCharacter(code: number): boolean {
+  return !printableWindows1252Codes.has(code);
 }
 
-function hasControlCharacters(line: string): boolean {
+function hasInvalidCharacters(line: string): boolean {
   for (let index = 0; index < line.length; index++) {
-    if (isControlCharacter(line.charCodeAt(index))) {
+    if (isInvalidCharacter(line.charCodeAt(index))) {
       return true;
     }
   }
@@ -105,7 +137,7 @@ function checkLine(
   const lineNumber = index + 1;
   const issues: Cnab444Issue[] = [];
 
-  if (hasControlCharacters(line)) {
+  if (hasInvalidCharacters(line)) {
     issues.push({ code: "INVALID_CHARACTERS", lineNumber });
   }
   const hasExpectedLength = line.length === cnab444Layout.lineLength;
@@ -145,11 +177,11 @@ function checkLine(
 }
 
 export function parseCnab444(content: string): Cnab444ParseResult {
-  if (content.trim() === "") {
+  const lines = splitLines(content);
+  if (lines.length === 0) {
     return { ok: false, errors: [{ code: "EMPTY_FILE" }], truncated: false };
   }
 
-  const lines = splitLines(content);
   const errors: Cnab444Issue[] = [];
   const receivables: Receivable[] = [];
 

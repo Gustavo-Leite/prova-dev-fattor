@@ -5,61 +5,43 @@ import {
   buildRemittance,
   fulfillStream,
   fullStream,
+  interruptedStream,
   ndjson,
-  resultsSection,
-  samplePath,
+  sampleReceivables,
   sampleResult,
-  visibleRows,
 } from "./remittance-stream";
+import {
+  chooseRemittance,
+  chooseSample,
+  fileInput,
+  listAnnouncement,
+  milestone,
+  pagination,
+  resultsSection,
+  statusFilter,
+  statusFilters,
+  uploadAlert,
+  uploadSection,
+  uploadStatus,
+  visibleRows,
+} from "./support/locators";
+
+const interruptedMessage = "A consulta foi interrompida antes do fim.";
 
 const remittance = buildRemittance(30);
-
-function fileInput(page: Page) {
-  return page.locator('input[type="file"]');
-}
-
-function uploadSection(page: Page) {
-  return page.locator("section", { has: fileInput(page) });
-}
-
-function uploadStatus(page: Page) {
-  return uploadSection(page).getByRole("status");
-}
-
-function uploadAlert(page: Page) {
-  return uploadSection(page).getByRole("alert");
-}
-
-function milestone(page: Page) {
-  return page.getByRole("status").filter({ hasText: /^Consult/ });
-}
 
 function filledAnnouncements(page: Page) {
   return page.getByRole("status").filter({ hasText: /^Consult|encontrad/ });
 }
 
-function pagination(page: Page) {
-  return resultsSection(page).getByRole("navigation", { name: "Páginas dos resultados" });
-}
-
-function statusFilter(page: Page, name: RegExp) {
-  return resultsSection(page)
-    .getByRole("group", { name: "Filtrar por situação" })
-    .getByRole("button", { name });
+function resultsAlert(page: Page) {
+  return resultsSection(page).getByRole("alert");
 }
 
 function navLink(page: Page, name: string) {
   return page
     .getByRole("navigation", { name: "Principal" })
     .getByRole("link", { name, exact: true });
-}
-
-async function chooseRemittance(page: Page) {
-  await fileInput(page).setInputFiles({
-    name: "remessa-30.rem",
-    mimeType: "application/octet-stream",
-    buffer: remittance.buffer,
-  });
 }
 
 async function markDocument(page: Page) {
@@ -87,7 +69,7 @@ async function checkAndNarrow(page: Page) {
   await page.route("**/api/remittances", fulfillStream(fullStream(remittance.receivables)));
   await page.goto("/");
   await markDocument(page);
-  await chooseRemittance(page);
+  await chooseRemittance(page, remittance);
   await expect(milestone(page)).toHaveText("Consulta concluída: 30 títulos consultados.");
 
   await pagination(page).getByLabel("Títulos por página").selectOption("10");
@@ -102,10 +84,11 @@ async function expectNarrowedViewKept(page: Page) {
   await expect(uploadStatus(page)).toBeEmpty();
   await expect(statusFilter(page, /^Autorizada: 15$/)).toHaveAttribute("aria-pressed", "true");
   await expect(pagination(page)).toContainText("11–15 de 15");
-  await expect(pagination(page).getByRole("status")).toHaveText("Página 2 de 2");
+  await expect(pagination(page)).toContainText("Página 2 de 2");
   await expect(pagination(page).getByLabel("Títulos por página")).toHaveValue("10");
   await expect(visibleRows(page)).toHaveCount(5);
   await expect(filledAnnouncements(page)).toHaveCount(0);
+  await expect(listAnnouncement(page)).toBeEmpty();
   await expect(page.locator("main :focus")).toHaveCount(0);
 }
 
@@ -144,13 +127,9 @@ test.describe("check kept across the app pages (pt-BR)", () => {
 
     await expect(milestone(page)).toHaveText("Consulta concluída: 30 títulos consultados.");
     await expect(pagination(page)).toContainText("1–25 de 30");
-    await expect(pagination(page).getByRole("status")).toHaveText("Página 1 de 2");
+    await expect(pagination(page)).toContainText("Página 1 de 2");
     await expect(pagination(page).getByLabel("Títulos por página")).toHaveValue("25");
-    await expect(
-      resultsSection(page)
-        .getByRole("group", { name: "Filtrar por situação" })
-        .getByRole("button", { pressed: true }),
-    ).toHaveCount(0);
+    await expect(statusFilters(page).getByRole("button", { pressed: true })).toHaveCount(0);
   });
 
   test("finishes a check that was still running while the user was away", async ({ page }) => {
@@ -168,7 +147,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
     try {
       await page.goto("/");
       await markDocument(page);
-      await fileInput(page).setInputFiles(samplePath);
+      await chooseSample(page);
       await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
 
       await goToLayoutPage(page);
@@ -185,6 +164,51 @@ test.describe("check kept across the app pages (pt-BR)", () => {
         resultsSection(page).getByRole("button", { name: "Consultar de novo" }),
       ).toBeVisible();
       expect(requests).toBe(1);
+    } finally {
+      releaseResponse();
+    }
+  });
+
+  test("keeps an interrupted check on screen without raising its alert again", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillStream(interruptedStream(sampleReceivables, 3)));
+    await page.goto("/");
+    await markDocument(page);
+    await chooseSample(page);
+    await expect(resultsAlert(page)).toContainText(interruptedMessage);
+
+    await goToLayoutPage(page);
+    await goHome(page);
+
+    await expectSameDocument(page);
+    await expect(resultsSection(page).getByText(interruptedMessage)).toBeVisible();
+    await expect(resultsAlert(page)).toHaveCount(0);
+  });
+
+  test("raises the alert when a check left running is interrupted after coming back", async ({
+    page,
+  }) => {
+    let releaseResponse: () => void = () => undefined;
+    const responseReleased = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    await page.route("**/api/remittances", async (route) => {
+      await responseReleased;
+      await fulfillStream(interruptedStream(sampleReceivables, 3))(route);
+    });
+
+    try {
+      await page.goto("/");
+      await markDocument(page);
+      await chooseSample(page);
+      await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
+
+      await goToLayoutPage(page);
+      await goHome(page);
+
+      releaseResponse();
+
+      await expectSameDocument(page);
+      await expect(resultsAlert(page)).toContainText(interruptedMessage);
     } finally {
       releaseResponse();
     }
@@ -220,7 +244,7 @@ test.describe("check kept across the app pages (pt-BR)", () => {
   test("shows the kept results in the new language after switching it", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream()));
     await page.goto("/");
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
     await statusFilter(page, /^Cancelada: 2$/).click();
 
@@ -261,7 +285,7 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
     );
     await page.goto("/");
     await markDocument(page);
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(resultsSection(page)).toBeVisible();
     await expect(uploadSection(page)).toContainText("10 títulos lidos em meu_cnab.rem.");
 
@@ -290,7 +314,7 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
     try {
       await page.goto("/");
       await markDocument(page);
-      await fileInput(page).setInputFiles(samplePath);
+      await chooseSample(page);
       await expect(milestone(page)).toHaveText("Consultando 10 títulos na API da Fattor.");
 
       const aborted = page.waitForEvent("requestfailed", (request) =>
@@ -309,7 +333,7 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
   test("starts empty after a reload", async ({ page }) => {
     await page.route("**/api/remittances", fulfillStream(fullStream()));
     await page.goto("/");
-    await fileInput(page).setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(milestone(page)).toHaveText("Consulta concluída: 10 títulos consultados.");
 
     await page.reload();
@@ -317,4 +341,25 @@ test.describe("check cleared outside the app pages (pt-BR)", () => {
     await expect(uploadStatus(page)).toBeEmpty();
     await expect(resultsSection(page)).toHaveCount(0);
   });
+});
+
+test.describe("skip link (pt-BR)", () => {
+  test.use({ locale: "pt-BR" });
+
+  for (const path of ["/", "/cnab-444"]) {
+    test(`moves the focus to the main content of ${path}`, async ({ page }) => {
+      await page.goto(path);
+      const skipLink = page.getByRole("link", { name: "Pular para o conteúdo", exact: true });
+
+      await page.keyboard.press("Tab");
+      await expect(skipLink).toBeFocused();
+      const box = await skipLink.boundingBox();
+      expect(box?.width ?? 0).toBeGreaterThan(1);
+      expect(box?.height ?? 0).toBeGreaterThan(1);
+
+      await page.keyboard.press("Enter");
+      await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("main");
+      await expect(page.getByRole("main")).toBeFocused();
+    });
+  }
 });

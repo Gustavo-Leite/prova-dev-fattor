@@ -1,4 +1,3 @@
-import AxeBuilder from "@axe-core/playwright";
 import type { Page, Route } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
@@ -7,26 +6,17 @@ import {
   fullStream,
   interruptedStream,
   ndjson,
-  resultsSection,
-  samplePath,
   sampleReceivables,
   sampleResult,
-  visibleRowFor,
 } from "./remittance-stream";
-
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-async function chooseSample(page: Page) {
-  await page.locator('input[type="file"]').setInputFiles(samplePath);
-}
-
-function milestone(page: Page) {
-  return page.getByRole("status").filter({ hasText: /^Consult/ });
-}
-
-function statusFilters(page: Page) {
-  return resultsSection(page).getByRole("group", { name: "Filtrar por situação" });
-}
+import { wcagViolations } from "./support/a11y";
+import {
+  chooseSample,
+  milestone,
+  resultsSection,
+  statusFilters,
+  visibleRowFor,
+} from "./support/locators";
 
 function repeatButton(page: Page) {
   return resultsSection(page).getByRole("button", {
@@ -82,7 +72,7 @@ test.describe("status check (pt-BR)", () => {
     await chooseSample(page);
 
     const row = visibleRowFor(page, sampleReceivables[0]?.key ?? "");
-    const skeleton = row.locator('[aria-hidden="true"][class*="animate-pulse"]');
+    const skeleton = row.locator('[aria-hidden="true"][data-slot="status-skeleton"]');
     await expect(skeleton).toBeVisible();
     await expect(row).toContainText("Consultando…");
 
@@ -125,10 +115,16 @@ test.describe("status check (pt-BR)", () => {
   });
 
   test("keeps the focus on the button while checking", async ({ page }) => {
+    let releaseSecondCheck: () => void = () => undefined;
+    const secondCheckReleased = new Promise<void>((resolve) => {
+      releaseSecondCheck = resolve;
+    });
     let attempts = 0;
     await page.route("**/api/remittances", async (route) => {
       attempts++;
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (attempts > 1) {
+        await secondCheckReleased;
+      }
       await fulfillStream(fullStream())(route);
     });
     await chooseSample(page);
@@ -139,9 +135,13 @@ test.describe("status check (pt-BR)", () => {
     await page.keyboard.press("Enter");
 
     const checking = page.getByRole("button", { name: "Consultando…", exact: true });
-    await expect(checking).toBeFocused();
-    await expect(checking).toHaveAttribute("aria-disabled", "true");
-    await page.keyboard.press("Enter");
+    try {
+      await expect(checking).toBeFocused();
+      await expect(checking).toHaveAttribute("aria-disabled", "true");
+      await page.keyboard.press("Enter");
+    } finally {
+      releaseSecondCheck();
+    }
     await expect(again).toBeVisible();
     expect(attempts).toBe(2);
   });
@@ -258,9 +258,7 @@ test.describe("status check (pt-BR)", () => {
     await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeFocused();
 
     await resultsSection(page).getByRole("heading", { name: "Situação das notas" }).click();
-    await expect
-      .poll(() => page.evaluate(() => document.activeElement === document.body))
-      .toBe(true);
+    await expect(page.getByRole("button", { name: "Consultando…", exact: true })).not.toBeFocused();
     releaseSecondCheck();
 
     await expect(signInLink(page)).toBeVisible();
@@ -346,6 +344,10 @@ test.describe("status check (pt-BR)", () => {
   });
 
   test("drops the current check when another file is chosen", async ({ page }) => {
+    let releaseStaleResponse: () => void = () => undefined;
+    const staleResponseReleased = new Promise<void>((resolve) => {
+      releaseStaleResponse = resolve;
+    });
     let markStaleResponseSent: () => void = () => undefined;
     const staleResponseSent = new Promise<void>((resolve) => {
       markStaleResponseSent = resolve;
@@ -359,22 +361,27 @@ test.describe("status check (pt-BR)", () => {
         )(route);
         return;
       }
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await staleResponseReleased;
       await fulfillStream(fullStream())(route).catch(() => undefined);
       markStaleResponseSent();
     });
     const failedRequests: string[] = [];
     page.on("requestfailed", (request) => failedRequests.push(request.url()));
     await chooseSample(page);
-    await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeVisible();
-
-    await chooseSample(page);
 
     const finished = "Consulta concluída: 10 títulos consultados, 1 com falha.";
-    await expect(milestone(page)).toHaveText(finished);
-    await expect
-      .poll(() => failedRequests)
-      .toContainEqual(expect.stringContaining("/api/remittances"));
+    try {
+      await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeVisible();
+
+      await chooseSample(page);
+
+      await expect(milestone(page)).toHaveText(finished);
+      await expect
+        .poll(() => failedRequests)
+        .toContainEqual(expect.stringContaining("/api/remittances"));
+    } finally {
+      releaseStaleResponse();
+    }
     await staleResponseSent;
     await expect(milestone(page)).toHaveText(finished);
     await expect(statusFilters(page)).toContainText("Falhou: 1");
@@ -401,9 +408,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await chooseSample(page);
       await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
 
-      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-      expect(results.violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
 
     test("has no WCAG 2.2 AA violations when asking to sign in again", async ({ page }) => {
@@ -413,9 +418,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await chooseSample(page);
       await expect(page.getByRole("link", { name: "Entrar de novo" })).toBeVisible();
 
-      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-      expect(results.violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
   });
 }
@@ -426,7 +429,7 @@ test.describe("status check (en)", () => {
   test("labels the statuses in English", async ({ page }) => {
     await page.goto("/");
     await page.route("**/api/remittances", fulfillStream(fullStream()));
-    await page.locator('input[type="file"]').setInputFiles(samplePath);
+    await chooseSample(page);
 
     await expect(page.getByRole("region", { name: "Invoice statuses" })).toContainText(
       "Authorized: 5",

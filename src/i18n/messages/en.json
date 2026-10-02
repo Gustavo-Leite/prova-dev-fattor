@@ -1,6 +1,7 @@
 {
   "metadata": {
     "title": "CNAB 444 Status Checker",
+    "pageTitle": "{page} · {app}",
     "description": "Upload a CNAB 444 remittance file and check the status of each invoice."
   },
   "home": {
@@ -118,7 +119,7 @@
     },
     "issues": {
       "EMPTY_FILE": "The file is empty.",
-      "INVALID_CHARACTERS": "Line {lineNumber}: contains control characters.",
+      "INVALID_CHARACTERS": "Line {lineNumber}: contains invisible characters or characters not allowed in a remittance file.",
       "INVALID_LINE_LENGTH": "Line {lineNumber}: {actual, plural, =0 {is empty} one {has # character} other {has # characters}}; {expected} are expected.",
       "UNEXPECTED_RECORD_TYPE": "Line {lineNumber}: record of type “{actual}”; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
       "UNEXPECTED_BLANK_LINE": "Line {lineNumber}: is blank; expected {expected, select, header {a header (0)} detail {a detail (1)} trailer {a trailer (9)} other {type {expected}}}.",
@@ -260,6 +261,13 @@
     "description": "The page you are looking for does not exist.",
     "backHome": "Back to home"
   },
+  "errorPage": {
+    "title": "Something went wrong",
+    "description": "This page could not be displayed because of an unexpected error. Please try again in a moment.",
+    "retry": "Try again",
+    "home": "Back to home",
+    "errorCode": "Error code:"
+  },
   "footer": {
     "disclaimer": "Technical assessment project — not an official Fattor Crédito product."
   },
@@ -271,6 +279,7 @@
       "layout": "CNAB 444 layout"
     },
     "signOut": "Sign out",
+    "skipToContent": "Skip to content",
     "theme": {
       "label": "Theme",
       "system": "Follow the system theme",

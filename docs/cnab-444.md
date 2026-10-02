@@ -251,10 +251,19 @@ resto for 0 ou 1, o dígito é 0; senão, é 11 − resto.
 
 Resumo das restrições de que a leitura do arquivo depende. As regras exatas e os códigos de erro
 estão em [`src/domain/cnab/`](../src/domain/cnab/) (`decode-remittance.ts` e `parse-cnab-444.ts`)
-e nos testes; as decisões, no [ADR 0010](adr/0010-cnab-444-parser.md).
+e nos testes; as decisões, nos ADRs [0010](adr/0010-cnab-444-parser.md) e
+[0018](adr/0018-utf8-bom-and-trailing-padding.md).
 
-- o arquivo é lido byte a byte (windows-1252, sem BOM), então 1 byte = 1 coluna;
-- toda linha tem 444 colunas (LF ou CR+LF; linhas em branco depois do trailer são ignoradas);
+- sem BOM, o arquivo é lido byte a byte (windows-1252), então 1 byte = 1 coluna;
+- com BOM UTF-8 (`EF BB BF`), o resto é lido como UTF-8, então 1 caractere = 1 coluna (`É` ocupa
+  2 bytes e 1 coluna); se não for UTF-8 válido, volta a ser lido como windows-1252. Só o alfabeto
+  imprimível do windows-1252 é aceito: um emoji, um acento combinante ou um caractere invisível
+  é erro, mesmo que a linha fique com 444 colunas
+  ([ADR 0021](adr/0021-windows-1252-alphabet.md));
+- toda linha tem 444 colunas (LF ou CR+LF). No fim do arquivo, depois do trailer, são ignorados:
+  um CR solto, o caractere de fim de arquivo do DOS (`0x1A`), NULs de preenchimento e linhas só com
+  espaço, tab, `0x1A` ou NUL. Esses caracteres no meio do arquivo continuam
+  sendo erro, assim como um segundo BOM (U+FEFF);
 - a primeira linha é header (`0`), a última é trailer (`9`) e as intermediárias são detalhes
   (`1`);
 - o trailer informa o total de registros (393–398 neste arquivo; 395–400 na referência; lido em
@@ -262,7 +271,9 @@ e nos testes; as decisões, no [ADR 0010](adr/0010-cnab-444-parser.md).
 - o identificador de cada detalhe está em 401–444, com 44 caracteres no formato da chave;
 - o dígito verificador da chave é informado em cada recebível (`hasValidCheckDigit`), sem
   rejeitar o arquivo;
-- só caracteres de controle invalidam uma linha; acentos fora da chave são aceitos.
+- só o alfabeto imprimível do windows-1252 é aceito numa linha (sem controles, sem soft hyphen
+  nem caracteres invisíveis de UTF-8, [ADR 0021](adr/0021-windows-1252-alphabet.md)); acentos
+  fora da chave são aceitos.
 
 ## 7. Glossário
 

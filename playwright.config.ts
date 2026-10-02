@@ -2,6 +2,8 @@ import { createHmac } from "node:crypto";
 
 import { defineConfig, devices } from "@playwright/test";
 
+import { maxSessionSeconds } from "./src/lib/session-cookie";
+
 const e2eSessionSecret = "e2e-session-secret-e2e-session-secret";
 export const e2eSessionToken = "e2e-session";
 
@@ -12,7 +14,9 @@ export function sealE2eSession(expiry: string): string {
   return `${e2eSessionToken}.${expiry}.${signature}`;
 }
 
-const e2eSealedSession = sealE2eSession("4102444800");
+const e2eSealedSession = sealE2eSession(
+  String(Math.floor(Date.now() / 1000) + maxSessionSeconds / 2),
+);
 
 const port = 3100;
 const baseURL = `http://localhost:${port}`;

@@ -11,7 +11,7 @@ export type PageSize = (typeof pageSizes)[number];
 
 export const defaultPageSize: PageSize = 25;
 
-export const summaryOrder: readonly RowTone[] = [
+const summaryOrder: readonly RowTone[] = [
   "authorized",
   "cancelled",
   "rejected",
@@ -21,7 +21,7 @@ export const summaryOrder: readonly RowTone[] = [
   "pending",
 ];
 
-export type NormalizedQuery =
+type NormalizedQuery =
   | { readonly kind: "any" }
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "invalid" };
@@ -122,7 +122,7 @@ export function resultsViewReducer(view: ResultsView, action: ResultsViewAction)
   }
 }
 
-export interface VisibleRows {
+interface VisibleRows {
   readonly pageRows: readonly ReceivableRow[];
   readonly filteredCount: number;
   readonly pageCount: number;

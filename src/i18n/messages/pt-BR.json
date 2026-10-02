@@ -1,6 +1,7 @@
 {
   "metadata": {
     "title": "Consulta de Status CNAB 444",
+    "pageTitle": "{page} · {app}",
     "description": "Envie um arquivo de remessa CNAB 444 e consulte a situação de cada nota fiscal."
   },
   "home": {
@@ -118,7 +119,7 @@
     },
     "issues": {
       "EMPTY_FILE": "O arquivo está vazio.",
-      "INVALID_CHARACTERS": "Linha {lineNumber}: contém caracteres de controle.",
+      "INVALID_CHARACTERS": "Linha {lineNumber}: contém caracteres invisíveis ou não permitidos em uma remessa.",
       "INVALID_LINE_LENGTH": "Linha {lineNumber}: {actual, plural, =0 {está vazia} one {tem # caractere} other {tem # caracteres}}; o esperado são {expected}.",
       "UNEXPECTED_RECORD_TYPE": "Linha {lineNumber}: registro do tipo “{actual}”; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
       "UNEXPECTED_BLANK_LINE": "Linha {lineNumber}: está em branco; esperado {expected, select, header {um header (0)} detail {um detalhe (1)} trailer {um trailer (9)} other {o tipo {expected}}}.",
@@ -260,6 +261,13 @@
     "description": "A página que você procura não existe.",
     "backHome": "Voltar ao início"
   },
+  "errorPage": {
+    "title": "Algo deu errado",
+    "description": "Não foi possível exibir esta página por causa de um erro inesperado. Tente de novo em instantes.",
+    "retry": "Tentar de novo",
+    "home": "Voltar ao início",
+    "errorCode": "Código do erro:"
+  },
   "footer": {
     "disclaimer": "Projeto de avaliação técnica — não é um produto oficial da Fattor Crédito."
   },
@@ -271,6 +279,7 @@
       "layout": "Layout CNAB 444"
     },
     "signOut": "Sair",
+    "skipToContent": "Pular para o conteúdo",
     "theme": {
       "label": "Tema",
       "system": "Seguir o tema do sistema",

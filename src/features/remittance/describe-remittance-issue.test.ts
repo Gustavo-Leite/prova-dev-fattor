@@ -83,6 +83,25 @@ describe("describeRemittanceIssue", () => {
   });
 
   it.each([
+    ["\u001A", "U+001A"],
+    ["\r", "U+000D"],
+    [" ", "U+0020"],
+    [String.fromCodePoint(0xfeff), "U+FEFF"],
+    ["5", "5"],
+  ])("shows the record type %j as %s", (actual, shown) => {
+    const issue: Cnab444Issue = {
+      code: "UNEXPECTED_RECORD_TYPE",
+      lineNumber: 3,
+      expected: "1",
+      actual,
+    };
+    expect(describeRemittanceIssue(issue)).toEqual({
+      key: "issues.UNEXPECTED_RECORD_TYPE",
+      values: { lineNumber: 3, expected: "detail", actual: shown },
+    });
+  });
+
+  it.each([
     [
       1,
       "Linha 2: tem 1 caractere; o esperado são 444.",

@@ -44,6 +44,8 @@ pode ser um JWT com pontos) e só aceitam o cookie se a assinatura conferir (com
 constante) e `exp` ainda não tiver passado. Um token obtido fora da página `/entrar` não passa. A
 expiração vai dentro do selo porque o servidor não confia no `maxAge`: quem guarda o cookie é o
 navegador, que pode reenviá-lo depois do prazo. Trocar a `SESSION_SECRET` encerra todas as sessões.
+Um `exp` mais distante do que a sessão mais longa que o login emite (24 h a partir de agora) também é
+recusado: é defesa em profundidade, porque nenhum selo legítimo passa desse teto.
 
 | Chamada               | Uso                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------ |

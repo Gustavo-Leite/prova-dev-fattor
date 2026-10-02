@@ -20,6 +20,9 @@ export const defaultRemittanceCheckPolicy: RemittanceCheckPolicy = {
   deadlineMs: 25_000,
 };
 
+export const maxUploadBytes = 128 * 1024;
+export const multipartOverheadBytes = 16 * 1024;
+
 export type ItemFailureReason = Exclude<LookupFailureReason, "UPSTREAM_REJECTED_CREDENTIALS">;
 
 export type ReceivableCheck = Receivable &

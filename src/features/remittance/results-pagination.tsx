@@ -74,7 +74,7 @@ export function ResultsPagination({
           >
             {t("previous")}
           </Button>
-          <span role="status" className="whitespace-nowrap tabular-nums">
+          <span className="whitespace-nowrap tabular-nums">
             {t("page", { page: pageIndex + 1, pageCount })}
           </span>
           <Button

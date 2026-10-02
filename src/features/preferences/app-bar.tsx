@@ -32,7 +32,7 @@ export async function AppBar({ locale, theme, logo, signOutAction }: AppBarProps
             alt=""
             width={28}
             height={28}
-            priority
+            loading="eager"
             className="size-7 shrink-0 rounded-md p-0.5 dark:bg-white"
           />
           <span className="truncate">{t("name")}</span>

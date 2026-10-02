@@ -1,6 +1,7 @@
 import type { Receivable } from "@/domain/cnab/parse-cnab-444";
 import type { RemittanceRejection } from "@/domain/cnab/read-remittance";
 import { readRemittance } from "@/domain/cnab/read-remittance";
+import type { FileTooLargeError } from "@/features/remittance/upload-error";
 
 export interface RemittanceUploadLimits {
   readonly maxUploadBytes: number;
@@ -9,7 +10,7 @@ export interface RemittanceUploadLimits {
 
 export type RemittanceFileRejection =
   | RemittanceRejection
-  | { readonly code: "FILE_TOO_LARGE"; readonly maxBytes: number }
+  | FileTooLargeError
   | { readonly code: "MULTIPLE_FILES" }
   | { readonly code: "UNREADABLE_FILE" };
 

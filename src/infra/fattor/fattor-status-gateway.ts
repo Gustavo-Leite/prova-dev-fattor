@@ -7,6 +7,13 @@ import type {
 import { InvoiceStatusLookupError } from "@/application/remittance/invoice-status-gateway";
 import type { InvoiceStatus } from "@/domain/invoice/invoice-status";
 import { parseStatusResponse } from "@/infra/fattor/fattor-api.contract";
+import {
+  abortable,
+  discardBody,
+  isSuccessStatus,
+  parseJson,
+  readCappedText,
+} from "@/infra/fattor/upstream-response";
 
 export interface FattorStatusGatewayConfig {
   readonly baseUrl: string;
@@ -27,6 +34,8 @@ interface UpstreamReply {
   readonly body: unknown;
 }
 
+export const maxStatusResponseBytes = 16 * 1024;
+
 const defaultOptions = {
   timeoutMs: 5_000,
   retries: 2,
@@ -38,26 +47,6 @@ const defaultOptions = {
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
-}
-
-function isSuccessStatus(status: number): boolean {
-  return status >= 200 && status < 300;
-}
-
-function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => {
-      reject(signal.reason as Error);
-    };
-    if (signal.aborted) {
-      onAbort();
-      return;
-    }
-    signal.addEventListener("abort", onAbort, { once: true });
-    void promise.then(resolve, reject).finally(() => {
-      signal.removeEventListener("abort", onAbort);
-    });
-  });
 }
 
 function sleep(delayMs: number, signal: AbortSignal): Promise<void> {
@@ -81,18 +70,6 @@ function retryAfterMs(response: Response, now: number): number | null {
   }
   const date = Date.parse(header);
   return Number.isNaN(date) ? null : date - now;
-}
-
-function discardBody(response: Response): void {
-  void response.body?.cancel().catch(() => undefined);
-}
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return undefined;
-  }
 }
 
 export function createFattorStatusGateway(
@@ -128,8 +105,11 @@ export function createFattorStatusGateway(
             discardBody(response);
             return { status: response.status, body: undefined };
           }
-          const text = await abortable(response.text(), attemptSignal);
-          return { status: response.status, body: parseJson(text) };
+          const text = await readCappedText(response, attemptSignal, maxStatusResponseBytes);
+          return {
+            status: response.status,
+            body: text === null ? undefined : parseJson(text),
+          };
         }
         failure = "UPSTREAM_UNAVAILABLE";
         lastCause = new Error(`Upstream answered ${String(response.status)}`);
@@ -143,6 +123,9 @@ export function createFattorStatusGateway(
         failure = attemptTimeout.signal.aborted ? "UPSTREAM_TIMEOUT" : "UPSTREAM_UNAVAILABLE";
       } finally {
         clearTimeout(timer);
+      }
+      if (requestedDelayMs !== null && requestedDelayMs > options.maxRetryDelayMs) {
+        break;
       }
       if (attempt < options.retries) {
         await sleep(backoffMs(attempt, requestedDelayMs), signal);

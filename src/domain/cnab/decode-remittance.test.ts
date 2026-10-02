@@ -30,6 +30,28 @@ describe("decodeRemittance", () => {
     expect(decodeRemittance(bytesOf(0xef, 0xbb, 0xbf, 0x30, 0x0a))).toBe("0\n");
   });
 
+  it("decodes the rest as UTF-8 after a byte order mark", () => {
+    expect(decodeRemittance(bytesOf(0xef, 0xbb, 0xbf, 0x4a, 0x4f, 0x53, 0xc3, 0x89))).toBe("JOSÉ");
+  });
+
+  it("falls back to windows-1252 when the bytes after a byte order mark are not UTF-8", () => {
+    expect(decodeRemittance(bytesOf(0xef, 0xbb, 0xbf, 0x4a, 0x4f, 0x53, 0xc9, 0x20, 0x80))).toBe(
+      "JOSÉ €",
+    );
+  });
+
+  it("decodes a character outside the BMP after a byte order mark as two code units", () => {
+    const decoded = decodeRemittance(bytesOf(0xef, 0xbb, 0xbf, 0xf0, 0x9f, 0x98, 0x80));
+    expect(decoded).toBe(String.fromCodePoint(0x1f600));
+    expect(decoded).toHaveLength(2);
+  });
+
+  it("removes only the first byte order mark", () => {
+    expect(decodeRemittance(bytesOf(0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, 0x30))).toBe(
+      `${String.fromCharCode(0xfeff)}0`,
+    );
+  });
+
   it("keeps the byte order mark bytes anywhere else", () => {
     expect(decodeRemittance(bytesOf(0x30, 0xef, 0xbb, 0xbf))).toBe("0ï»¿");
   });

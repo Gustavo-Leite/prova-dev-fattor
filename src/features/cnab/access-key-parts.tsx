@@ -1,11 +1,9 @@
-"use client";
-
 import { useFormatter, useTranslations } from "next-intl";
 
 import type { AccessKeyField, AccessKeyParts } from "@/domain/cnab/access-key";
 import { accessKeyLayout } from "@/domain/cnab/access-key";
 import { formatIssuerId, withoutLeadingZeros } from "@/features/cnab/format-access-key";
-import { usePositionLabel } from "@/features/cnab/line-xray";
+import { usePositionLabel } from "@/features/cnab/use-position-label";
 
 const accessKeyFields = Object.keys(accessKeyLayout) as AccessKeyField[];
 

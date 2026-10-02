@@ -1,13 +1,11 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 
-import AxeBuilder from "@axe-core/playwright";
 import type { BrowserContext, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { e2eSessionToken, sealE2eSession } from "../../playwright.config";
-
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+import { wcagViolations } from "./support/a11y";
+import { samplePath } from "./support/locators";
 
 function signOutButton(page: Page) {
   return page.getByRole("button", { name: "Sair", exact: true });
@@ -34,7 +32,7 @@ async function signOutAndExpectSignedOut(page: Page, context: BrowserContext) {
 const sampleFile = {
   name: "meu_cnab.rem",
   mimeType: "text/plain",
-  buffer: readFileSync(path.join(__dirname, "../../_prova/meu_cnab.rem")),
+  buffer: readFileSync(samplePath),
 };
 
 test.describe("without a session", () => {
@@ -132,6 +130,7 @@ test.describe("with a session", () => {
 const unusableSessionCookies = {
   tampered: `x.1.${"A".repeat(43)}`,
   expired: sealE2eSession("1000000000"),
+  "far-future": sealE2eSession("4102444800"),
 } as const;
 
 for (const [kind, value] of Object.entries(unusableSessionCookies)) {
@@ -153,6 +152,12 @@ for (const [kind, value] of Object.entries(unusableSessionCookies)) {
         ],
         origins: [],
       },
+    });
+
+    test("sends the home page to the sign-in page", async ({ page }) => {
+      await page.goto("/");
+
+      await expect(page).toHaveURL(/\/entrar$/);
     });
 
     test("offers no sign out on the CNAB 444 layout page", async ({ page }) => {
@@ -191,7 +196,7 @@ test.describe("signing out", () => {
       await page.goto("/");
       await expect(signOutButton(page)).toBeVisible();
 
-      expect((await new AxeBuilder({ page }).withTags(wcagTags).analyze()).violations).toEqual([]);
+      expect(await wcagViolations(page)).toEqual([]);
     });
   }
 });

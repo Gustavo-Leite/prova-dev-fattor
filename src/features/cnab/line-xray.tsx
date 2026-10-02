@@ -1,9 +1,6 @@
-"use client";
-
-import { useTranslations } from "next-intl";
-
 import type { FieldPosition } from "@/domain/cnab/layout";
 import { readField } from "@/domain/cnab/layout";
+import { usePositionLabel } from "@/features/cnab/use-position-label";
 
 export type LineXraySegmentTone = "solid" | "muted" | "underline" | "observed";
 
@@ -49,12 +46,6 @@ function splitLine(line: string, segments: readonly LineXraySegment[]): LinePiec
     pieces.push({ start: nextColumn, text: line.slice(nextColumn - 1), tone: null });
   }
   return pieces;
-}
-
-export function usePositionLabel(): (position: FieldPosition) => string {
-  const t = useTranslations("cnab");
-  return ({ start, end }) =>
-    start === end ? t("position", { start }) : t("positions", { start, end });
 }
 
 export interface LineXrayProps {

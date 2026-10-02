@@ -1,12 +1,15 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-import { fulfillStream, fullStream, samplePath } from "./remittance-stream";
+import { fulfillStream, fullStream } from "./remittance-stream";
+import { chooseSample } from "./support/locators";
 
 const staticHeaders = {
   "x-frame-options": "DENY",
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "same-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
 };
 
@@ -101,7 +104,7 @@ test.describe("content security policy in the browser", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
     await page.route("**/api/remittances", fulfillStream(fullStream()));
-    await page.locator('input[type="file"]').setInputFiles(samplePath);
+    await chooseSample(page);
     await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
 
     await page

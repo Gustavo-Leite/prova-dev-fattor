@@ -1,5 +1,3 @@
-"use client";
-
 import { useLocale, useTranslations } from "next-intl";
 
 import { readField } from "@/domain/cnab/layout";
@@ -7,8 +5,8 @@ import { decodeAmount, decodeDueDate } from "@/features/cnab/decode-sample-field
 import type { DetailFieldId } from "@/features/cnab/detail-fields";
 import { detailFields } from "@/features/cnab/detail-fields";
 import { groupAccessKey } from "@/features/cnab/format-access-key";
-import { usePositionLabel } from "@/features/cnab/line-xray";
 import { sampleDetailLine } from "@/features/cnab/sample-detail-line";
+import { usePositionLabel } from "@/features/cnab/use-position-label";
 import type { Locale } from "@/lib/locale";
 
 function decodedValue(id: DetailFieldId, raw: string, locale: Locale): string | null {

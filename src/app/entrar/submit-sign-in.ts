@@ -1,6 +1,7 @@
 import type { Authenticator } from "@/application/session/authenticator";
 import type { SignInFormState } from "@/features/session/sign-in-fields";
 import { parseSignInInput, readSubmittedEmail } from "@/features/session/sign-in-input";
+import { effectiveSessionSeconds, minSessionSeconds } from "@/lib/session-cookie";
 
 export interface SubmitSignInDependencies {
   readonly authenticator: Authenticator;
@@ -21,6 +22,9 @@ export async function submitSignIn(
   }
   const result = await authenticator.signIn(input.credentials);
   if (result.kind === "signed-in") {
+    if (effectiveSessionSeconds(result.expiresInSeconds) < minSessionSeconds) {
+      return { kind: "form", state: { email, formError: "unavailable" } };
+    }
     return {
       kind: "signed-in",
       token: result.token,

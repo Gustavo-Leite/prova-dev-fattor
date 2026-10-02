@@ -1,19 +1,14 @@
 import { recordTypeCodes } from "@/domain/cnab/layout";
 import type { Cnab444Issue } from "@/domain/cnab/parse-cnab-444";
-import type { RemittanceRejection } from "@/domain/cnab/read-remittance";
+import type { RemittanceUploadError } from "@/features/remittance/upload-error";
 
 export const remittancesEndpoint = "/api/remittances";
 
 export type SubmitError =
+  | RemittanceUploadError
   | { readonly code: "ABORTED" }
   | { readonly code: "NETWORK_ERROR" }
-  | { readonly code: "UNEXPECTED_RESPONSE"; readonly status: number }
-  | { readonly code: "INVALID_REQUEST" }
-  | { readonly code: "CROSS_SITE_REQUEST" }
-  | { readonly code: "SESSION_EXPIRED" }
-  | { readonly code: "LENGTH_REQUIRED" }
-  | { readonly code: "FILE_TOO_LARGE"; readonly maxBytes: number }
-  | RemittanceRejection;
+  | { readonly code: "UNEXPECTED_RESPONSE"; readonly status: number };
 
 export type SubmitResult =
   | { readonly ok: true; readonly body: ReadableStream<Uint8Array> }

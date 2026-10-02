@@ -43,6 +43,40 @@ describe("submitSignIn", () => {
     expect(signIn).toHaveBeenCalledExactlyOnceWith({ email: "user@example.test", password });
   });
 
+  it.each([1, 60, 119])(
+    "refuses a session that would expire at once when the token lasts %d seconds",
+    async (expiresInSeconds) => {
+      const { authenticator } = authenticatorAnswering({
+        kind: "signed-in",
+        token: "T1",
+        expiresInSeconds,
+      });
+
+      const outcome = await submitSignIn(
+        { authenticator },
+        formWith({ email: "user@example.test", password }),
+      );
+
+      expect(outcome).toEqual({
+        kind: "form",
+        state: { email: "user@example.test", formError: "unavailable" },
+      });
+      expect(JSON.stringify(outcome)).not.toContain(password);
+    },
+  );
+
+  it.each([120, 3600])("signs in when the token lasts %d seconds", async (expiresInSeconds) => {
+    const { authenticator } = authenticatorAnswering({
+      kind: "signed-in",
+      token: "T1",
+      expiresInSeconds,
+    });
+
+    await expect(
+      submitSignIn({ authenticator }, formWith({ email: "user@example.test", password })),
+    ).resolves.toEqual({ kind: "signed-in", token: "T1", expiresInSeconds });
+  });
+
   it("returns the field errors without calling the authenticator", async () => {
     const { authenticator, signIn } = authenticatorAnswering({ kind: "rejected" });
 

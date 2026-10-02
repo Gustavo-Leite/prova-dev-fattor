@@ -1,12 +1,16 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+import { wcagViolations } from "./support/a11y";
+
 const missingPath = "/this-page-does-not-exist";
 
 const copyByLocale = {
-  en: { title: "Page not found", backHome: "Back to home" },
-  "pt-BR": { title: "Página não encontrada", backHome: "Voltar ao início" },
+  en: { title: "Page not found", app: "CNAB 444 Status Checker", backHome: "Back to home" },
+  "pt-BR": {
+    title: "Página não encontrada",
+    app: "Consulta de Status CNAB 444",
+    backHome: "Voltar ao início",
+  },
 } as const;
 
 for (const [locale, copy] of Object.entries(copyByLocale)) {
@@ -17,7 +21,7 @@ for (const [locale, copy] of Object.entries(copyByLocale)) {
       const response = await page.goto(missingPath);
 
       expect(response?.status()).toBe(404);
-      await expect(page).toHaveTitle(copy.title);
+      await expect(page).toHaveTitle(`${copy.title} · ${copy.app}`);
       await expect(page.locator("html")).toHaveAttribute("lang", locale);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(copy.title);
 
@@ -31,9 +35,7 @@ for (const [locale, copy] of Object.entries(copyByLocale)) {
         await page.emulateMedia({ colorScheme });
         await page.goto(missingPath);
 
-        const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-
-        expect(results.violations).toEqual([]);
+        expect(await wcagViolations(page)).toEqual([]);
       });
     }
   });

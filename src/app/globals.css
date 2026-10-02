@@ -15,9 +15,9 @@
 @custom-variant desktop-tall (@media (min-width: 64rem) and (min-height: 40rem));
 
 @theme inline {
-  --font-sans: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-sora, ui-sans-serif, system-ui, sans-serif);
+  --font-heading: var(--font-sora, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, ui-monospace, monospace);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

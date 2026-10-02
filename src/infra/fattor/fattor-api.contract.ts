@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { SignInCredentials } from "@/application/session/authenticator";
 import type { InvoiceStatus } from "@/domain/invoice/invoice-status";
 
 export const maxTokenLength = 4000;
@@ -21,6 +22,8 @@ const situacaoSchema = z.enum([
   "nao_encontrada",
 ]);
 
+export type FattorSituacao = z.infer<typeof situacaoSchema>;
+
 const statusResponseSchema = z.object({
   chave_nfe: z.string(),
   situacao: situacaoSchema,
@@ -32,24 +35,19 @@ const statusBySituacao = {
   rejeitada: "rejected",
   denegada: "denied",
   nao_encontrada: "not_found",
-} as const satisfies Record<z.infer<typeof situacaoSchema>, InvoiceStatus>;
+} as const satisfies Record<FattorSituacao, InvoiceStatus>;
 
-export interface FattorCredentials {
-  readonly email: string;
-  readonly password: string;
-}
-
-export interface FattorLogin {
+interface FattorLogin {
   readonly token: string;
   readonly expiresInSeconds: number;
 }
 
-export interface FattorInvoiceStatus {
+interface FattorInvoiceStatus {
   readonly invoiceAccessKey: string;
   readonly status: InvoiceStatus;
 }
 
-export function toLoginRequestBody(credentials: FattorCredentials): string {
+export function toLoginRequestBody(credentials: SignInCredentials): string {
   return JSON.stringify({ email: credentials.email, password: credentials.password });
 }
 
