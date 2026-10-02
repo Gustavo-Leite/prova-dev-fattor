@@ -27,7 +27,8 @@
       "started": "Checking {total, plural, one {# receivable} other {# receivables}} with the Fattor API.",
       "progress": "{done} of {total} checked",
       "completed": "Check finished: {total, plural, one {# receivable checked} other {# receivables checked}}{failed, plural, =0 {.} other {, # failed.}}",
-      "credentialsRejected": "The Fattor API refused the server credentials, so the check was stopped. Try again later.",
+      "credentialsRejected": "The Fattor API refused the session, so the check was stopped.",
+      "signInAgain": "Sign in again",
       "interrupted": "The check stopped before the end. Receivables without a status can be checked again.",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Status of each receivable in the file, in line order",
@@ -105,6 +106,7 @@
       "UNEXPECTED_RESPONSE": "The server gave an unexpected answer (code {status}).",
       "INVALID_REQUEST": "The server did not accept the upload.",
       "CROSS_SITE_REQUEST": "The upload was blocked because it came from another origin.",
+      "SESSION_EXPIRED": "Your session has expired.",
       "LENGTH_REQUIRED": "The browser did not send the file size."
     },
     "rejections": {
@@ -218,6 +220,41 @@
       }
     }
   },
+  "signIn": {
+    "metadataTitle": "Sign in",
+    "title": "Sign in",
+    "hero": {
+      "tagline": "Check the status of the invoices in your CNAB 444 remittance."
+    },
+    "help": {
+      "label": "About the credentials",
+      "content": "Use the email and password allowed for this app. In the demo, they are the public credentials from the API documentation."
+    },
+    "demoCredentialsLink": "See the demo credentials in the API documentation",
+    "opensInNewTab": " (opens in a new tab)",
+    "email": {
+      "label": "Email",
+      "errors": {
+        "required": "Enter your email.",
+        "invalid": "Enter a valid email, such as name@company.com.",
+        "tooLong": "The email can have at most {max} characters."
+      }
+    },
+    "password": {
+      "label": "Password",
+      "toggleVisibility": "Show password",
+      "errors": {
+        "required": "Enter your password.",
+        "tooLong": "The password can have at most {max} characters."
+      }
+    },
+    "formErrors": {
+      "rejected": "Incorrect email or password.",
+      "unavailable": "Could not sign in right now. Try again in a moment."
+    },
+    "submit": "Sign in",
+    "submitting": "Signing in…"
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist.",
@@ -233,6 +270,7 @@
       "check": "Check",
       "layout": "CNAB 444 layout"
     },
+    "signOut": "Sign out",
     "theme": {
       "label": "Theme",
       "system": "Follow the system theme",

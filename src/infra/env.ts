@@ -2,6 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 
+export const maxSignInEmailLength = 254;
+export const maxSignInPasswordLength = 256;
+export const minSessionSecretLength = 32;
+export const minSessionSecretDistinctCharacters = 8;
+
 const serverEnvSchema = z
   .object({
     FATTOR_API_BASE_URL: z
@@ -17,14 +22,27 @@ const serverEnvSchema = z
         const url = new URL(value);
         return `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
       }),
-    FATTOR_API_EMAIL: z.email(),
-    FATTOR_API_PASSWORD: z.string().min(1),
+    SIGN_IN_EMAIL: z
+      .string()
+      .trim()
+      .pipe(z.email().max(maxSignInEmailLength))
+      .transform((value) => value.toLowerCase()),
+    SIGN_IN_PASSWORD: z.string().min(1).max(maxSignInPasswordLength),
+    SESSION_SECRET: z
+      .string()
+      .min(minSessionSecretLength)
+      .refine((value) => new Set(value).size >= minSessionSecretDistinctCharacters, {
+        message: "Must be random, e.g. generated with: openssl rand -base64 32",
+      }),
   })
   .transform((env) => ({
+    sessionSecret: env.SESSION_SECRET,
     fattorApi: {
       baseUrl: env.FATTOR_API_BASE_URL,
-      email: env.FATTOR_API_EMAIL,
-      password: env.FATTOR_API_PASSWORD,
+    },
+    signIn: {
+      email: env.SIGN_IN_EMAIL,
+      password: env.SIGN_IN_PASSWORD,
     },
   }));
 

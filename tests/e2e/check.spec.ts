@@ -1,10 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import {
   fulfillStream,
   fullStream,
+  interruptedStream,
   ndjson,
   resultsSection,
   samplePath,
@@ -25,6 +26,27 @@ function milestone(page: Page) {
 
 function statusFilters(page: Page) {
   return resultsSection(page).getByRole("group", { name: "Filtrar por situação" });
+}
+
+function repeatButton(page: Page) {
+  return resultsSection(page).getByRole("button", {
+    name: /^(Consultar de novo|Tentar de novo|Consultando…)$/,
+  });
+}
+
+function signInLink(page: Page) {
+  return resultsSection(page).getByRole("alert").getByRole("link", { name: "Entrar de novo" });
+}
+
+const credentialsRejectedStream = ndjson([
+  { type: "started", total: 10 },
+  sampleResult(2),
+  sampleResult(3),
+  { type: "failed", reason: "UPSTREAM_REJECTED_CREDENTIALS" },
+]);
+
+function fulfillSessionExpired(route: Route) {
+  return route.fulfill({ status: 401, json: { code: "SESSION_EXPIRED" } });
 }
 
 test.describe("status check (pt-BR)", () => {
@@ -142,23 +164,122 @@ test.describe("status check (pt-BR)", () => {
     );
   });
 
-  test("explains a rejection of the server credentials", async ({ page }) => {
-    await page.route(
-      "**/api/remittances",
-      fulfillStream(
-        ndjson([
-          { type: "started", total: 10 },
-          sampleResult(2),
-          { type: "failed", reason: "UPSTREAM_REJECTED_CREDENTIALS" },
-        ]),
-      ),
-    );
+  test("offers to sign in again when the Fattor API rejects the session", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillStream(credentialsRejectedStream));
     await chooseSample(page);
 
-    await expect(resultsSection(page).getByRole("alert")).toContainText(
-      "A API da Fattor recusou as credenciais do servidor",
-    );
-    await expect(page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
+    const alert = resultsSection(page).getByRole("alert");
+    await expect(
+      alert.getByText("A API da Fattor recusou a sessão, então a consulta foi interrompida.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    const signInAgain = alert.getByRole("link", { name: "Entrar de novo" });
+    await expect(signInAgain).toHaveAttribute("href", "/entrar");
+    await expect(resultsSection(page).getByText("2 de 10 consultados")).toBeVisible();
+    await expect(visibleRowFor(page, sampleReceivables[0]?.key ?? "")).toContainText("Autorizada");
+    await expect(visibleRowFor(page, sampleReceivables[1]?.key ?? "")).toContainText("Cancelada");
+    await expect(repeatButton(page)).toHaveCount(0);
+
+    await signInAgain.click();
+
+    await expect(page).toHaveURL(/\/entrar$/);
+  });
+
+  test("moves the focus from the check button to the sign-in link", async ({ page }) => {
+    let attempts = 0;
+    await page.route("**/api/remittances", async (route) => {
+      attempts++;
+      await fulfillStream(attempts === 1 ? fullStream() : credentialsRejectedStream)(route);
+    });
+    await chooseSample(page);
+    const again = page.getByRole("button", { name: "Consultar de novo" });
+    await expect(again).toBeVisible();
+
+    await again.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(signInLink(page)).toBeFocused();
+    await expect(repeatButton(page)).toHaveCount(0);
+    expect(attempts).toBe(2);
+  });
+
+  test("moves the focus from the retry button to the sign-in link", async ({ page }) => {
+    let attempts = 0;
+    await page.route("**/api/remittances", async (route) => {
+      attempts++;
+      if (attempts === 1) {
+        await fulfillStream(interruptedStream(sampleReceivables, 2))(route);
+        return;
+      }
+      await fulfillSessionExpired(route);
+    });
+    await chooseSample(page);
+    const retry = page.getByRole("button", { name: "Tentar de novo" });
+    await expect(retry).toBeVisible();
+
+    await retry.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(signInLink(page)).toBeFocused();
+    expect(attempts).toBe(2);
+  });
+
+  test("leaves the focus alone when the first upload finds the session expired", async ({
+    page,
+  }) => {
+    await page.route("**/api/remittances", fulfillSessionExpired);
+    await chooseSample(page);
+
+    await expect(signInLink(page)).toBeVisible();
+    await expect(signInLink(page)).not.toBeFocused();
+  });
+
+  test("leaves the focus alone when it moved away from the check button", async ({ page }) => {
+    let releaseSecondCheck: () => void = () => undefined;
+    const secondCheckReleased = new Promise<void>((resolve) => {
+      releaseSecondCheck = resolve;
+    });
+    let attempts = 0;
+    await page.route("**/api/remittances", async (route) => {
+      attempts++;
+      if (attempts === 1) {
+        await fulfillStream(fullStream())(route);
+        return;
+      }
+      await secondCheckReleased;
+      await fulfillStream(credentialsRejectedStream)(route);
+    });
+    await chooseSample(page);
+    const again = page.getByRole("button", { name: "Consultar de novo" });
+    await expect(again).toBeVisible();
+    await again.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Consultando…", exact: true })).toBeFocused();
+
+    await resultsSection(page).getByRole("heading", { name: "Situação das notas" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement === document.body))
+      .toBe(true);
+    releaseSecondCheck();
+
+    await expect(signInLink(page)).toBeVisible();
+    await expect(signInLink(page)).not.toBeFocused();
+  });
+
+  test("offers to sign in again when the session has expired", async ({ page }) => {
+    await page.route("**/api/remittances", fulfillSessionExpired);
+    await chooseSample(page);
+
+    const alert = resultsSection(page).getByRole("alert");
+    await expect(alert.getByText("Sua sessão expirou.", { exact: true })).toBeVisible();
+    const signInAgain = alert.getByRole("link", { name: "Entrar de novo" });
+    await expect(signInAgain).toHaveAttribute("href", "/entrar");
+    await expect(repeatButton(page)).toHaveCount(0);
+
+    await signInAgain.click();
+
+    await expect(page).toHaveURL(/\/entrar$/);
   });
 
   test("retries an interrupted check until it completes", async ({ page }) => {
@@ -209,6 +330,8 @@ test.describe("status check (pt-BR)", () => {
     await expect(resultsSection(page).getByRole("alert")).toContainText(
       "Não foi possível falar com o servidor.",
     );
+    await expect(resultsSection(page).getByRole("alert").getByRole("link")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
   });
 
   test("explains that the Fattor API is unreachable", async ({ page }) => {
@@ -277,6 +400,18 @@ for (const colorScheme of ["light", "dark"] as const) {
       );
       await chooseSample(page);
       await expect(page.getByRole("button", { name: "Consultar de novo" })).toBeVisible();
+
+      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
+
+      expect(results.violations).toEqual([]);
+    });
+
+    test("has no WCAG 2.2 AA violations when asking to sign in again", async ({ page }) => {
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      await page.goto("/");
+      await page.route("**/api/remittances", fulfillSessionExpired);
+      await chooseSample(page);
+      await expect(page.getByRole("link", { name: "Entrar de novo" })).toBeVisible();
 
       const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
 

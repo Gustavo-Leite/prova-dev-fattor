@@ -14,15 +14,36 @@ Navegador ──POST /api/remittances (arquivo)──► Servidor Next.js ──
 A página não chama a API da Fattor diretamente:
 
 - a API não envia cabeçalhos CORS, então o navegador não pode lê-la;
-- as credenciais precisam ficar no servidor.
+- o token da sessão precisa ficar fora do alcance do JavaScript da página.
 
 O servidor (BFF, _backend for frontend_) recebe o arquivo, valida, consulta a API e devolve os
 resultados aos poucos.
 
 ## 2. API externa (Fattor)
 
-Documentada em OpenAPI (`/public/prova-dev/openapi`). URL base e credenciais vêm do ambiente
-(`FATTOR_API_BASE_URL`, `FATTOR_API_EMAIL`, `FATTOR_API_PASSWORD`; ver `.env.example`).
+Documentada em OpenAPI (`/public/prova-dev/openapi`). A URL base vem do ambiente
+(`FATTOR_API_BASE_URL`; ver `.env.example`). O login é feito por cada usuário na página `/entrar`:
+o servidor chama `POST /login` e guarda o token num cookie `session` HttpOnly, que o JavaScript
+da página não lê. O servidor não guarda token da API.
+
+A API de demonstração responde `200` com um token válido para **qualquer** e-mail e senha. Por
+isso o servidor só libera a credencial configurada em `SIGN_IN_EMAIL` e `SIGN_IN_PASSWORD`
+(obrigatórias; o `.env.example` traz as credenciais públicas de demonstração do Swagger). O e-mail
+é comparado sem diferenciar maiúsculas; a senha, exatamente e em tempo constante. Qualquer outra
+credencial é recusada sem chamar a API.
+
+Como qualquer pessoa pode pedir um token direto à API, o cookie não guarda o token cru. Ele guarda
+`<token>.<exp>.<assinatura>`:
+
+- `exp` é o fim da sessão em segundos Unix (só dígitos, até 11), igual ao `maxAge` do cookie;
+- a assinatura é o HMAC-SHA256 de `<exp>.<token>` com a chave `SESSION_SECRET`, em base64url.
+  A chave é obrigatória, com 32 caracteres ou mais; gere com `openssl rand -base64 32`.
+
+A página `/` e a rota `POST /api/remittances` separam o valor pelos dois últimos pontos (o token
+pode ser um JWT com pontos) e só aceitam o cookie se a assinatura conferir (comparação em tempo
+constante) e `exp` ainda não tiver passado. Um token obtido fora da página `/entrar` não passa. A
+expiração vai dentro do selo porque o servidor não confia no `maxAge`: quem guarda o cookie é o
+navegador, que pode reenviá-lo depois do prazo. Trocar a `SESSION_SECRET` encerra todas as sessões.
 
 | Chamada               | Uso                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------ |
@@ -41,38 +62,43 @@ Mapeamento da situação para o domínio (código em inglês):
 
 ### Como o servidor usa a API
 
-- **Token:** reaproveitado até 60 s antes de expirar (ou metade da validade, se for curta).
-  Consultas simultâneas compartilham um único login.
-- **401 numa consulta:** o servidor faz login de novo uma vez e repete. Um segundo 401 significa
-  credenciais rejeitadas.
-- **Login recusado (400, 401 ou 403):** credenciais rejeitadas; a verificação do arquivo inteiro é
-  interrompida (evita uma tentativa de login por item).
-- **Tempo limite:** 5 s por tentativa, contando o corpo da resposta; o login inteiro tem no máximo
-  10 s.
-- **Novas tentativas:** até 2, com espera exponencial e variação aleatória, em falha de rede,
-  tempo limite, 5xx e 429 (respeitando `Retry-After`, até 5 s). Outros 4xx não são repetidos.
-  Vale para o login e para as consultas.
+- **Token:** o do cookie `session`, depois de conferidos a assinatura e o `exp`, enviado em cada
+  consulta. O cookie (e o `exp`) expira 60 s antes do token (ou na metade da validade, se for
+  curta) e dura no máximo 24 h.
+- **401 numa consulta:** a sessão foi recusada; a verificação do arquivo inteiro é interrompida,
+  sem nova tentativa nem novo login. O usuário entra de novo na página `/entrar`.
+- **Login recusado (credencial diferente da configurada, ou API respondendo 400, 401 ou 403):** a
+  página `/entrar` informa e-mail ou senha incorretos.
+- **Tempo limite:** 5 s por tentativa de consulta, contando o corpo da resposta; o login tem no
+  máximo 10 s.
+- **Novas tentativas:** até 2 por consulta, com espera exponencial e variação aleatória, em falha
+  de rede, tempo limite, 5xx e 429 (respeitando `Retry-After`, até 5 s). Outros 4xx não são
+  repetidos. O login não é repetido.
 - **Redirecionamentos não são seguidos:** uma resposta 3xx é tratada como indisponibilidade, para
   que credenciais e token nunca sejam enviados a outro endereço.
+- **Rotas protegidas:** sem um cookie `session` com assinatura válida, a página `/` redireciona para
+  `/entrar`; `/cnab-444` continua pública.
 - **Resposta validada:** corpo fora do contrato ou `chave_nfe` diferente da chave consultada é
   resposta inválida.
 
 ## 3. Rota da aplicação: `POST /api/remittances`
 
 Corpo `multipart/form-data` com o arquivo no campo `file`. O arquivo é decodificado e validado
-pelo parser (ver [cnab-444.md](cnab-444.md)).
+pelo parser (ver [cnab-444.md](cnab-444.md)). A rota exige o cookie `session` gravado pelo login;
+a origem e a sessão são conferidas antes de ler o corpo.
 
 ### Respostas
 
-| HTTP | Corpo                                                             | Quando                                                                                                                                     |
-| ---- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 200  | NDJSON (abaixo)                                                   | Arquivo válido; a consulta começa                                                                                                          |
-| 400  | `{ "code": "INVALID_REQUEST" }`                                   | Corpo não é multipart ou o campo `file` não tem exatamente um arquivo                                                                      |
-| 403  | `{ "code": "CROSS_SITE_REQUEST" }`                                | Disparada por outra origem (`Sec-Fetch-Site` diferente de `same-origin`/`none`)                                                            |
-| 411  | `{ "code": "LENGTH_REQUIRED" }`                                   | Sem `Content-Length` numérico                                                                                                              |
-| 413  | `{ "code": "FILE_TOO_LARGE", "maxBytes": 131072 }`                | `Content-Length` acima de 144 KiB (128 KiB + 16 KiB de margem do multipart; recusado sem ler o corpo) ou arquivo acima de 128 KiB          |
-| 422  | `{ "code": "INVALID_FILE", "errors": [...], "truncated": false }` | Arquivo fora do layout; `errors` traz os códigos do parser (com a linha, quando se aplica), no máximo 50; `truncated` indica se havia mais |
-| 422  | `{ "code": "TOO_MANY_RECEIVABLES", "max": 200, "actual": 250 }`   | Mais itens do que o permitido                                                                                                              |
+| HTTP | Corpo                                                             | Quando                                                                                                                                                                                              |
+| ---- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 200  | NDJSON (abaixo)                                                   | Arquivo válido; a consulta começa                                                                                                                                                                   |
+| 400  | `{ "code": "INVALID_REQUEST" }`                                   | Corpo não é multipart ou o campo `file` não tem exatamente um arquivo                                                                                                                               |
+| 401  | `{ "code": "SESSION_EXPIRED" }`                                   | Sem cookie `session`, mal formado ou sem assinatura válida                                                                                                                                          |
+| 403  | `{ "code": "CROSS_SITE_REQUEST" }`                                | Disparada por outra origem (`Sec-Fetch-Site` diferente de `same-origin`/`none`, ou `Origin` com host diferente do primeiro valor de `X-Forwarded-Host` ou de `Host`, ou `Origin: null` ou inválido) |
+| 411  | `{ "code": "LENGTH_REQUIRED" }`                                   | Sem `Content-Length` numérico                                                                                                                                                                       |
+| 413  | `{ "code": "FILE_TOO_LARGE", "maxBytes": 131072 }`                | `Content-Length` acima de 144 KiB (128 KiB + 16 KiB de margem do multipart; recusado sem ler o corpo) ou arquivo acima de 128 KiB                                                                   |
+| 422  | `{ "code": "INVALID_FILE", "errors": [...], "truncated": false }` | Arquivo fora do layout; `errors` traz os códigos do parser (com a linha, quando se aplica), no máximo 50; `truncated` indica se havia mais                                                          |
+| 422  | `{ "code": "TOO_MANY_RECEIVABLES", "max": 200, "actual": 250 }`   | Mais itens do que o permitido                                                                                                                                                                       |
 
 Todas as respostas listadas acima têm `Cache-Control: no-store`. As mensagens para o usuário vêm dos códigos,
 traduzidos pela interface.
@@ -88,7 +114,7 @@ que as consultas terminam.
 | `result`    | `lineNumber`, `invoiceAccessKey`, `hasValidCheckDigit`, `outcome: "status"`, `status` | Situação consultada com sucesso               |
 | `result`    | `lineNumber`, `invoiceAccessKey`, `hasValidCheckDigit`, `outcome: "failed"`, `reason` | Falha só deste item                           |
 | `completed` | —                                                                                     | Última linha: todos os itens foram informados |
-| `failed`    | `reason: "UPSTREAM_REJECTED_CREDENTIALS"`                                             | Última linha: consulta interrompida           |
+| `failed`    | `reason: "UPSTREAM_REJECTED_CREDENTIALS"`                                             | Última linha: a API recusou a sessão          |
 
 - `reason` de um item: `UPSTREAM_TIMEOUT`, `UPSTREAM_UNAVAILABLE` ou `UPSTREAM_INVALID_RESPONSE`.
 - Os resultados chegam na ordem em que terminam; `lineNumber` é a linha no arquivo, para ordenar.
@@ -110,8 +136,10 @@ que as consultas terminam.
 
 ### Exemplo
 
+O valor do cookie é o gravado pelo login em `/entrar` (token, `exp` e assinatura), copiado do navegador.
+
 ```bash
-curl -N -F "file=@_prova/meu_cnab.rem" http://localhost:3000/api/remittances
+curl -N -b "session=<cookie>" -F "file=@_prova/meu_cnab.rem" http://localhost:3000/api/remittances
 ```
 
 ```

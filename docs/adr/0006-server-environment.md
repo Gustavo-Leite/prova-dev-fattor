@@ -1,9 +1,9 @@
 # 0006. Ambiente do servidor
 
-- Status: Aceito
+- Status: Substituído parcialmente por 0015
 - Data: 2026-09-30
 - Substitui: —
-- Substituído por: —
+- Substituído por: 0015 (parcialmente: credenciais da API no ambiente)
 
 ## Contexto
 

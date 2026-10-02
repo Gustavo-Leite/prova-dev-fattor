@@ -2,8 +2,14 @@ import { z } from "zod";
 
 import type { InvoiceStatus } from "@/domain/invoice/invoice-status";
 
+export const maxTokenLength = 4000;
+
 const loginResponseSchema = z.object({
-  token: z.string().min(1),
+  token: z
+    .string()
+    .min(1)
+    .max(maxTokenLength)
+    .regex(/^[\x21-\x7E]+$/),
   expires_in: z.number().int().positive(),
 });
 

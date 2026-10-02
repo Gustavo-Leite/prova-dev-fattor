@@ -75,6 +75,13 @@ export function remittanceCheckReducer(
   }
 }
 
+export function requiresSignIn(state: RemittanceCheckState): boolean {
+  return (
+    state.phase === "failed" ||
+    (state.phase === "requestFailed" && state.error.code === "SESSION_EXPIRED")
+  );
+}
+
 export type RowState =
   | { readonly kind: "pending" }
   | { readonly kind: "status"; readonly status: InvoiceStatus }

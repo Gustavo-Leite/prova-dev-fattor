@@ -27,7 +27,8 @@
       "started": "Consultando {total, plural, one {# título} other {# títulos}} na API da Fattor.",
       "progress": "{done} de {total} consultados",
       "completed": "Consulta concluída: {total, plural, one {# título consultado} other {# títulos consultados}}{failed, plural, =0 {.} one {, # com falha.} other {, # com falha.}}",
-      "credentialsRejected": "A API da Fattor recusou as credenciais do servidor, então a consulta foi interrompida. Tente mais tarde.",
+      "credentialsRejected": "A API da Fattor recusou a sessão, então a consulta foi interrompida.",
+      "signInAgain": "Entrar de novo",
       "interrupted": "A consulta foi interrompida antes do fim. Os títulos sem situação podem ser consultados de novo.",
       "summaryItem": "{label}: {count}",
       "tableCaption": "Situação de cada título do arquivo, na ordem das linhas",
@@ -105,6 +106,7 @@
       "UNEXPECTED_RESPONSE": "O servidor respondeu de forma inesperada (código {status}).",
       "INVALID_REQUEST": "O servidor não aceitou o envio do arquivo.",
       "CROSS_SITE_REQUEST": "O envio foi bloqueado por vir de outra origem.",
+      "SESSION_EXPIRED": "Sua sessão expirou.",
       "LENGTH_REQUIRED": "O navegador não informou o tamanho do arquivo."
     },
     "rejections": {
@@ -218,6 +220,41 @@
       }
     }
   },
+  "signIn": {
+    "metadataTitle": "Entrar",
+    "title": "Entrar",
+    "hero": {
+      "tagline": "Consulte a situação das notas da sua remessa CNAB 444."
+    },
+    "help": {
+      "label": "Sobre as credenciais",
+      "content": "Use o e-mail e a senha liberados para este app. Na demonstração, são as credenciais públicas da documentação da API."
+    },
+    "demoCredentialsLink": "Ver as credenciais de demonstração na documentação da API",
+    "opensInNewTab": " (abre em nova aba)",
+    "email": {
+      "label": "E-mail",
+      "errors": {
+        "required": "Informe o e-mail.",
+        "invalid": "Informe um e-mail válido, como nome@empresa.com.br.",
+        "tooLong": "O e-mail pode ter no máximo {max} caracteres."
+      }
+    },
+    "password": {
+      "label": "Senha",
+      "toggleVisibility": "Mostrar senha",
+      "errors": {
+        "required": "Informe a senha.",
+        "tooLong": "A senha pode ter no máximo {max} caracteres."
+      }
+    },
+    "formErrors": {
+      "rejected": "E-mail ou senha incorretos.",
+      "unavailable": "Não foi possível entrar agora. Tente de novo em instantes."
+    },
+    "submit": "Entrar",
+    "submitting": "Entrando…"
+  },
   "notFound": {
     "title": "Página não encontrada",
     "description": "A página que você procura não existe.",
@@ -233,6 +270,7 @@
       "check": "Consultar",
       "layout": "Layout CNAB 444"
     },
+    "signOut": "Sair",
     "theme": {
       "label": "Tema",
       "system": "Seguir o tema do sistema",

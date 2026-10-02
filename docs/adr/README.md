@@ -13,16 +13,18 @@ projeto, que apontarão para os ADRs.
 | [0003](0003-dependency-policy.md)               | Como uma dependência entra e é fixada no projeto                            | Aceito |
 | [0004](0004-ui-foundation.md)                   | shadcn/ui sobre Base UI com tokens da marca validados em contraste          | Aceito |
 | [0005](0005-internationalization.md)            | next-intl sem prefixo de URL, idioma do cookie ou do navegador              | Aceito |
-| [0006](0006-server-environment.md)              | Ambiente do servidor validado na inicialização, sem valores padrão          | Aceito |
+| [0006](0006-server-environment.md)              | Ambiente do servidor validado na inicialização, sem valores padrão          | Substituído parcialmente por 0015 |
 | [0007](0007-quality-and-ci.md)                  | O que bloqueia um merge: testes, lint, E2E com axe e varredura de segredos  | Aceito |
 | [0008](0008-security-headers.md)                | Cabeçalhos de segurança HTTP; CSP de scripts com nonce quando houver UI     | Substituído parcialmente por 0016 |
 | [0009](0009-e2e-playwright-container.md)        | E2E na imagem oficial do Playwright, sem apt nem download do navegador      | Aceito |
 | [0010](0010-cnab-444-parser.md)                 | Parser CNAB 444 puro, só com colunas estáveis e erros tipados               | Aceito |
-| [0011](0011-fattor-api-integration.md)          | BFF com upload único e resultados em NDJSON; sessão, limites e prazo        | Aceito |
+| [0011](0011-fattor-api-integration.md)          | BFF com upload único e resultados em NDJSON; sessão, limites e prazo        | Substituído parcialmente por 0015 |
 | [0012](0012-results-list.md) | Filtros, busca e paginação por função pura, sem biblioteca de tabela | Aceito |
 | [0013](0013-theme-and-language-switchers.md) | Tema e idioma em cookie aplicado no servidor, via Server Actions | Aceito |
 | [0014](0014-cnab-444-layout-page.md) | Página do layout CNAB 444; posições observadas só para exibição | Aceito |
+| [0015](0015-user-session.md) | Sessão por usuário: portão de credencial e cookie `HttpOnly` selado | Aceito |
 | [0016](0016-nonce-content-security-policy.md) | CSP com nonce por requisição no proxy; fonte única da política | Aceito |
+| [0017](0017-keep-check-state-in-app-layout.md) | Estado da consulta no layout de `(app)`, sem storage do navegador | Aceito |
 
 Cada ADR segue o mesmo formato: Contexto, Opções consideradas, Decisão (a primeira linha resume a
 decisão), Consequências e Evidências (arquivos que aplicam a regra e o commit em que ela entrou).

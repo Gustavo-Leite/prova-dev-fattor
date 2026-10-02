@@ -127,6 +127,7 @@ export function describeSubmitError(
     case "NETWORK_ERROR":
     case "INVALID_REQUEST":
     case "CROSS_SITE_REQUEST":
+    case "SESSION_EXPIRED":
     case "LENGTH_REQUIRED":
       return { summary: { key: `requestErrors.${error.code}` }, details: [], truncated: false };
     default:

@@ -4,8 +4,9 @@ import type * as EnvModule from "@/infra/env";
 
 const validEnv = {
   FATTOR_API_BASE_URL: "https://api.example.com/public/prova-dev",
-  FATTOR_API_EMAIL: "demo@example.com",
-  FATTOR_API_PASSWORD: "top-secret-value",
+  SIGN_IN_EMAIL: "operator@example.test",
+  SIGN_IN_PASSWORD: "test-password",
+  SESSION_SECRET: "startup-test-secret-startup-test-secret",
 };
 
 describe("assertServerEnvOnStartup", () => {
@@ -31,6 +32,21 @@ describe("assertServerEnvOnStartup", () => {
 
     expect(exit).toHaveBeenCalledWith(1);
     expect(logError).toHaveBeenCalledWith(expect.stringContaining("FATTOR_API_BASE_URL"));
+  });
+
+  it("exits when the session secret is left empty", async () => {
+    for (const [name, value] of Object.entries(validEnv)) {
+      vi.stubEnv(name, value);
+    }
+    vi.stubEnv("SESSION_SECRET", "");
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+    const logError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { assertServerEnvOnStartup } = await import("@/infra/startup");
+
+    assertServerEnvOnStartup();
+
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(logError).toHaveBeenCalledWith(expect.stringContaining("SESSION_SECRET"));
   });
 
   it("does nothing when the env is valid", async () => {

@@ -35,6 +35,7 @@ describe("submitRemittance", () => {
 
   it.each([
     [400, { code: "INVALID_REQUEST" }],
+    [401, { code: "SESSION_EXPIRED" }],
     [403, { code: "CROSS_SITE_REQUEST" }],
     [411, { code: "LENGTH_REQUIRED" }],
     [413, { code: "FILE_TOO_LARGE", maxBytes: 131_072 }],

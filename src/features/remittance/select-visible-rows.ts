@@ -71,6 +71,57 @@ export interface RowSelection extends RowFilter {
   readonly pageSize: number;
 }
 
+export interface ResultsView extends RowFilter {
+  readonly pageIndex: number;
+  readonly pageSize: PageSize;
+}
+
+export type ResultsViewAction =
+  | { readonly type: "toneToggled"; readonly tone: RowTone }
+  | { readonly type: "queryChanged"; readonly query: string }
+  | { readonly type: "filtersCleared" }
+  | { readonly type: "sortChanged"; readonly sort: RowSort }
+  | { readonly type: "pageChanged"; readonly pageIndex: number }
+  | { readonly type: "pageSizeChanged"; readonly pageSize: PageSize }
+  | { readonly type: "reset" };
+
+export function createResultsView(): ResultsView {
+  return {
+    tones: new Set(),
+    query: "",
+    sort: defaultSort,
+    pageIndex: 0,
+    pageSize: defaultPageSize,
+  };
+}
+
+function toggleTone(tones: ReadonlySet<RowTone>, tone: RowTone): ReadonlySet<RowTone> {
+  const next = new Set(tones);
+  if (!next.delete(tone)) {
+    next.add(tone);
+  }
+  return next;
+}
+
+export function resultsViewReducer(view: ResultsView, action: ResultsViewAction): ResultsView {
+  switch (action.type) {
+    case "toneToggled":
+      return { ...view, tones: toggleTone(view.tones, action.tone), pageIndex: 0 };
+    case "queryChanged":
+      return { ...view, query: action.query, pageIndex: 0 };
+    case "filtersCleared":
+      return { ...view, tones: new Set(), query: "", pageIndex: 0 };
+    case "sortChanged":
+      return { ...view, sort: action.sort, pageIndex: 0 };
+    case "pageChanged":
+      return action.pageIndex === view.pageIndex ? view : { ...view, pageIndex: action.pageIndex };
+    case "pageSizeChanged":
+      return { ...view, pageSize: action.pageSize, pageIndex: 0 };
+    case "reset":
+      return createResultsView();
+  }
+}
+
 export interface VisibleRows {
   readonly pageRows: readonly ReceivableRow[];
   readonly filteredCount: number;

@@ -7,8 +7,10 @@ import {
   deriveRows,
   initialCheckState,
   remittanceCheckReducer,
+  requiresSignIn,
   summarizeRows,
 } from "@/features/remittance/remittance-check-state";
+import type { SubmitError } from "@/features/remittance/submit-remittance";
 
 const receivables: readonly Receivable[] = [2, 3, 4].map((lineNumber) => ({
   lineNumber,
@@ -112,6 +114,38 @@ describe("remittanceCheckReducer", () => {
       error: { code: "NETWORK_ERROR" },
     });
     expect(remittanceCheckReducer(failed, { type: "reset" })).toEqual(initialCheckState);
+  });
+});
+
+describe("requiresSignIn", () => {
+  const requestFailed = (error: SubmitError): RemittanceCheckAction => ({
+    type: "requestFailed",
+    attempt: 1,
+    error,
+  });
+
+  it.each([
+    [
+      "the Fattor API rejects the credentials",
+      run(submitted(), received({ type: "failed", reason: "UPSTREAM_REJECTED_CREDENTIALS" })),
+    ],
+    ["the session has expired", run(submitted(), requestFailed({ code: "SESSION_EXPIRED" }))],
+  ])("asks to sign in again when %s", (_description, state) => {
+    expect(requiresSignIn(state)).toBe(true);
+  });
+
+  it.each([
+    ["idle", initialCheckState],
+    ["checking", run(submitted())],
+    ["completed", run(submitted(), received({ type: "completed" }))],
+    ["interrupted", run(submitted(), received({ type: "interrupted" }))],
+    ["a network failure", run(submitted(), requestFailed({ code: "NETWORK_ERROR" }))],
+    [
+      "an unexpected response",
+      run(submitted(), requestFailed({ code: "UNEXPECTED_RESPONSE", status: 401 })),
+    ],
+  ])("lets the check be repeated after %s", (_description, state) => {
+    expect(requiresSignIn(state)).toBe(false);
   });
 });
 

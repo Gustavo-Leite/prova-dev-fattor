@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import type { MouseEvent, RefObject } from "react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -31,48 +32,76 @@ import type {
   RemittanceCheckState,
   RowTone,
 } from "@/features/remittance/remittance-check-state";
-import { summarizeRows, toneOf } from "@/features/remittance/remittance-check-state";
+import {
+  requiresSignIn,
+  summarizeRows,
+  toneOf,
+} from "@/features/remittance/remittance-check-state";
 import { ReceivableDetailDialog } from "@/features/remittance/receivable-detail-dialog";
 import { ResultsPagination } from "@/features/remittance/results-pagination";
 import { ResultsToolbar } from "@/features/remittance/results-toolbar";
 import type {
   PageSize,
+  ResultsView,
+  ResultsViewAction,
   RowSort,
   SortColumn,
   SortDirection,
 } from "@/features/remittance/select-visible-rows";
 import {
-  defaultPageSize,
   defaultSort,
   nextSort,
   selectFilteredRows,
   selectVisibleRows,
 } from "@/features/remittance/select-visible-rows";
+import { signInPath } from "@/lib/routes";
 
 export interface RemittanceResultsProps {
   readonly rows: readonly ReceivableRow[];
   readonly lines: readonly string[];
   readonly state: RemittanceCheckState;
+  readonly view: ResultsView;
+  readonly onViewChange: (action: ResultsViewAction) => void;
+  readonly signInLink: RefObject<HTMLAnchorElement | null>;
 }
 
-export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps) {
+export function RemittanceResults({
+  rows,
+  lines,
+  state,
+  view,
+  onViewChange,
+  signInLink,
+}: RemittanceResultsProps) {
   const t = useTranslations("remittance");
   const locale = useLocale();
   const [detailHandle] = useState(() => createDialogHandle<number>());
-  const [tones, setTones] = useState<ReadonlySet<RowTone>>(() => new Set());
-  const [query, setQuery] = useState("");
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState<PageSize>(defaultPageSize);
-  const [sort, setSort] = useState<RowSort>(defaultSort);
+  const { tones, query, sort, pageIndex, pageSize } = view;
+  const [filtersShownOnMount, setFiltersShownOnMount] = useState<{
+    readonly tones: ResultsView["tones"];
+    readonly query: string;
+    readonly phase: RemittanceCheckState["phase"];
+  } | null>(() => ({ tones, query, phase: state.phase }));
+  if (
+    filtersShownOnMount !== null &&
+    (tones !== filtersShownOnMount.tones ||
+      query !== filtersShownOnMount.query ||
+      state.phase !== filtersShownOnMount.phase)
+  ) {
+    setFiltersShownOnMount(null);
+  }
 
   const summary = summarizeRows(rows);
   const isChecking = state.phase === "checking";
   const hasRows = state.phase !== "idle" && state.phase !== "requestFailed";
   const hasFilters = tones.size > 0 || query !== "";
-  const visible = selectVisibleRows(rows, { tones, query, sort, pageIndex, pageSize });
-  if (visible.pageIndex !== pageIndex) {
-    setPageIndex(visible.pageIndex);
-  }
+  const hasChangedSinceMount = filtersShownOnMount === null;
+  const visible = selectVisibleRows(rows, view);
+  useEffect(() => {
+    if (visible.pageIndex !== pageIndex) {
+      onViewChange({ type: "pageChanged", pageIndex: visible.pageIndex });
+    }
+  }, [visible.pageIndex, pageIndex, onViewChange]);
 
   const translate = (message: RemittanceMessage) => t(message.key, message.values);
   const toneLabel = (tone: RowTone) =>
@@ -81,31 +110,22 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
     row.state.kind === "failed" ? t(`failureReasons.${row.state.reason}`) : toneLabel(toneOf(row));
 
   const toggleTone = (tone: RowTone) => {
-    setTones((current) => {
-      const next = new Set(current);
-      if (!next.delete(tone)) {
-        next.add(tone);
-      }
-      return next;
-    });
-    setPageIndex(0);
+    onViewChange({ type: "toneToggled", tone });
   };
   const changeQuery = (next: string) => {
-    setQuery(next);
-    setPageIndex(0);
+    onViewChange({ type: "queryChanged", query: next });
   };
   const clearFilters = () => {
-    setTones(new Set());
-    setQuery("");
-    setPageIndex(0);
+    onViewChange({ type: "filtersCleared" });
   };
   const changeSort = (next: RowSort) => {
-    setSort(next);
-    setPageIndex(0);
+    onViewChange({ type: "sortChanged", sort: next });
   };
   const changePageSize = (next: PageSize) => {
-    setPageSize(next);
-    setPageIndex(0);
+    onViewChange({ type: "pageSizeChanged", pageSize: next });
+  };
+  const changePage = (next: number) => {
+    onViewChange({ type: "pageChanged", pageIndex: next });
   };
   const exportRows = () => {
     const header = [
@@ -125,7 +145,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
   };
 
   const filterAnnouncement =
-    hasRows && hasFilters && !isChecking
+    hasRows && hasFilters && hasChangedSinceMount && !isChecking
       ? t("filters.matches", { count: visible.filteredCount })
       : "";
 
@@ -133,6 +153,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
     state.phase === "requestFailed" && state.error.code !== "ABORTED"
       ? describeSubmitError(state.error)
       : null;
+  const needsSignIn = requiresSignIn(state);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -152,11 +173,13 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
               </ul>
             </AlertDescription>
           )}
+          {needsSignIn && <SignInAgainLink ref={signInLink} />}
         </Alert>
       )}
       {state.phase === "failed" && (
         <Alert variant="destructive">
           <AlertTitle>{t("check.credentialsRejected")}</AlertTitle>
+          <SignInAgainLink ref={signInLink} />
         </Alert>
       )}
       {state.phase === "interrupted" && (
@@ -260,7 +283,7 @@ export function RemittanceResults({ rows, lines, state }: RemittanceResultsProps
               from={visible.from}
               to={visible.to}
               count={visible.filteredCount}
-              onPageChange={setPageIndex}
+              onPageChange={changePage}
               onPageSizeChange={changePageSize}
             />
           </div>
@@ -428,6 +451,25 @@ function DetailTrigger({ row, handle, triggerRef }: DetailTriggerProps) {
       </svg>
       <span className="sr-only">{t("openLabel", { ordinal: row.ordinal })}</span>
     </DialogTrigger>
+  );
+}
+
+interface SignInAgainLinkProps {
+  readonly ref: RefObject<HTMLAnchorElement | null>;
+}
+
+function SignInAgainLink({ ref }: SignInAgainLinkProps) {
+  const t = useTranslations("remittance.check");
+  return (
+    <AlertDescription>
+      <Link
+        ref={ref}
+        href={signInPath}
+        className="rounded-sm font-medium text-primary underline outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+      >
+        {t("signInAgain")}
+      </Link>
+    </AlertDescription>
   );
 }
 
