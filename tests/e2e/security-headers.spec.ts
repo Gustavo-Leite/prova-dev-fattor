@@ -7,6 +7,8 @@ const staticHeaders = {
   "x-frame-options": "DENY",
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "same-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
 };
 

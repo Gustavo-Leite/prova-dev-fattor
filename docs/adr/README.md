@@ -27,6 +27,7 @@ projeto, que apontarão para os ADRs.
 | [0017](0017-keep-check-state-in-app-layout.md) | Estado da consulta no layout de `(app)`, sem storage do navegador | Aceito |
 | [0018](0018-utf8-bom-and-trailing-padding.md) | BOM UTF-8 lido como UTF-8, com recuo para windows-1252; fim do arquivo tolerante | Aceito |
 | [0019](0019-results-announcements.md) | Anúncios da lista sem repetição: retrato na montagem e região única | Aceito |
+| [0020](0020-cross-origin-isolation-headers.md) | COOP e CORP `same-origin` contra _tabnabbing_ reverso e XS-Leaks | Aceito |
 
 Cada ADR segue o mesmo formato: Contexto, Opções consideradas, Decisão (a primeira linha resume a
 decisão), Consequências e Evidências (arquivos que aplicam a regra e o commit em que ela entrou).

@@ -17,10 +17,10 @@ vi.mock("@/infra/env", () => ({
 const nonceSource = /'nonce-([A-Za-z0-9+/=]+)'/;
 const sessionToken = "user-session-token";
 
-const farFutureExpiry = 4_102_444_800;
+const validExpiry = Math.floor(Date.now() / 1000) + 3600;
 const pastExpiry = 1_000_000_000;
 
-function sealWith(secret: string, { token = sessionToken, expiry = farFutureExpiry } = {}): string {
+function sealWith(secret: string, { token = sessionToken, expiry = validExpiry } = {}): string {
   const signature = createHmac("sha256", secret)
     .update(`${String(expiry)}.${token}`)
     .digest("base64url");
@@ -159,7 +159,7 @@ describe("proxy session guard", () => {
     ],
     [
       "with a forged signature",
-      requestWithSession(`${sessionToken}.${String(farFutureExpiry)}.${"A".repeat(43)}`),
+      requestWithSession(`${sessionToken}.${String(validExpiry)}.${"A".repeat(43)}`),
     ],
   ])("sends the home page to the sign-in page %s", async (_description, request) => {
     const response = await proxy(request);

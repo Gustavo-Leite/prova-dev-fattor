@@ -132,6 +132,7 @@ test.describe("with a session", () => {
 const unusableSessionCookies = {
   tampered: `x.1.${"A".repeat(43)}`,
   expired: sealE2eSession("1000000000"),
+  "far-future": sealE2eSession("4102444800"),
 } as const;
 
 for (const [kind, value] of Object.entries(unusableSessionCookies)) {
@@ -153,6 +154,12 @@ for (const [kind, value] of Object.entries(unusableSessionCookies)) {
         ],
         origins: [],
       },
+    });
+
+    test("sends the home page to the sign-in page", async ({ page }) => {
+      await page.goto("/");
+
+      await expect(page).toHaveURL(/\/entrar$/);
     });
 
     test("offers no sign out on the CNAB 444 layout page", async ({ page }) => {

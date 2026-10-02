@@ -85,6 +85,7 @@ export async function openSessionCookie(
     !isSessionToken(token) ||
     !sealExpiryPattern.test(expiry) ||
     Number(expiry) <= nowSeconds ||
+    Number(expiry) > nowSeconds + maxSessionSeconds ||
     !sealSignaturePattern.test(signature)
   ) {
     return null;
