@@ -1,9 +1,9 @@
 # 0011. Integração com a API da Fattor via BFF
 
-- Status: Aceito
+- Status: Substituído parcialmente por 0015
 - Data: 2026-09-30
 - Substitui: —
-- Substituído por: —
+- Substituído por: 0015 (parcialmente: sessão compartilhada, relogin e justificativa de CSRF)
 
 ## Contexto
 
